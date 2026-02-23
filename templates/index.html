@@ -1168,20 +1168,6 @@ function toggleSidebar() {
 }
 
 // ── Dashboards ───────────────────────────────────────────────
-async function loadDashboards() {
-  try {
-    const data = await api('GET', '/api/dashboards/');
-    STATE.dashboards = data.dashboards;
-    STATE.filteredDashboards = [...STATE.dashboards];
-    renderDashboards();
-    document.getElementById('dashCount').textContent = STATE.dashboards.length;
-    document.getElementById('dashSubtitle').textContent = `${STATE.dashboards.length} dashboards in ${STATE.user.department} scope`;
-    updateRecentDashboards();
-  } catch (e) {
-    toast('Failed to load dashboards: ' + e.message, 'error');
-  }
-}
-
 function renderDashboards() {
   const grid = document.getElementById('dashGrid');
   const list = document.getElementById('dashList');
@@ -2306,10 +2292,19 @@ function togglePassVis(inputId, btn) {
 }
 
 // ── Enhanced loadDashboards with category filter ──────────────
-const _origLoadDashboards = loadDashboards;
 async function loadDashboards() {
-  await _origLoadDashboards();
-  populateCategoryFilter();
+  try {
+    const data = await api('GET', '/api/dashboards/');
+    STATE.dashboards = data.dashboards;
+    STATE.filteredDashboards = [...STATE.dashboards];
+    renderDashboards();
+    document.getElementById('dashCount').textContent = STATE.dashboards.length;
+    document.getElementById('dashSubtitle').textContent = `${STATE.dashboards.length} dashboards in ${STATE.user.department} scope`;
+    updateRecentDashboards();
+    populateCategoryFilter();
+  } catch (e) {
+    toast('Failed to load dashboards: ' + e.message, 'error');
+  }
 }
 
 function populateCategoryFilter() {
