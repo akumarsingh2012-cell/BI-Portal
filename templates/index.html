@@ -1,0 +1,1888 @@
+<!DOCTYPE html>
+<html lang="en" id="htmlRoot" class="light">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>SLMG Beverages — Enterprise BI Portal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+/* =============================================
+   SLMG BEVERAGES BI PORTAL — COCA-COLA THEME
+   ============================================= */
+:root {
+  --red: #E8192C; --red-dark: #B0101E; --red-light: #FF3344;
+  --black: #1A1A1A; --white: #FFFFFF;
+  --bg: #F5F5F5; --surface: #FFFFFF;
+  --surface2: #F9F9F9; --border: #E5E7EB;
+  --text: #1A1A1A; --text2: #6B7280; --text3: #9CA3AF;
+  --green: #16A34A; --yellow: #D97706; --orange: #EA580C;
+  --sidebar-w: 256px;
+}
+.dark {
+  --bg: #0D0D0F; --surface: #161618; --surface2: #1E1E22;
+  --border: #2A2A30; --text: #F3F4F6; --text2: #9CA3AF; --text3: #6B7280;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); transition: background .2s, color .2s; min-height: 100vh; }
+h1,h2,h3,.bebas { font-family: 'Bebas Neue', sans-serif; letter-spacing: .04em; }
+
+/* === SCROLLBAR === */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--red); border-radius: 3px; }
+
+/* === LAYOUT === */
+#app { display: flex; min-height: 100vh; }
+#sidebar {
+  width: var(--sidebar-w); background: var(--black);
+  position: fixed; top: 0; left: 0; height: 100vh; z-index: 100;
+  display: flex; flex-direction: column; transition: transform .25s ease;
+  overflow-y: auto; overflow-x: hidden;
+}
+#sidebar.hidden { transform: translateX(-100%); }
+#mainContent {
+  margin-left: var(--sidebar-w); flex: 1;
+  display: flex; flex-direction: column; min-height: 100vh;
+  transition: margin-left .25s;
+}
+#mainContent.full { margin-left: 0; }
+
+/* === SIDEBAR === */
+.s-logo { padding: 20px 16px 14px; border-bottom: 1px solid #2A2A2A; }
+.s-logo img { height: 44px; object-fit: contain; }
+.s-section { padding: 8px 0; }
+.s-label { font-size: 10px; font-weight: 700; letter-spacing: .12em;
+  text-transform: uppercase; color: #555; padding: 8px 20px 4px; }
+.nav-item {
+  display: flex; align-items: center; gap: 11px;
+  padding: 10px 20px; cursor: pointer; color: #9CA3AF;
+  font-size: 13.5px; font-weight: 500;
+  transition: all .15s; border-left: 3px solid transparent;
+  position: relative;
+}
+.nav-item:hover { background: #252525; color: #fff; }
+.nav-item.active { background: #1f1f1f; color: var(--red-light); border-left-color: var(--red); }
+.nav-item .icon { font-size: 16px; min-width: 20px; text-align: center; }
+.nav-item .badge {
+  margin-left: auto; background: var(--red); color: white;
+  font-size: 10px; font-weight: 700; padding: 1px 6px;
+  border-radius: 10px; min-width: 18px; text-align: center;
+}
+
+/* === TOPBAR === */
+#topbar {
+  background: var(--surface); border-bottom: 1px solid var(--border);
+  padding: 0 24px; height: 60px; display: flex; align-items: center;
+  gap: 16px; position: sticky; top: 0; z-index: 50;
+  box-shadow: 0 1px 3px rgba(0,0,0,.06);
+}
+.search-box {
+  flex: 1; max-width: 380px; position: relative;
+}
+.search-box input {
+  width: 100%; padding: 8px 16px 8px 38px;
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 8px; color: var(--text); font-size: 13px;
+  outline: none; transition: border .15s;
+}
+.search-box input:focus { border-color: var(--red); }
+.search-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--text3); font-size: 14px; }
+
+/* === BUTTONS === */
+.btn {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 8px 18px; border-radius: 7px; font-size: 13px;
+  font-weight: 600; cursor: pointer; transition: all .15s;
+  border: none; outline: none;
+}
+.btn-red { background: var(--red); color: white; }
+.btn-red:hover { background: var(--red-dark); }
+.btn-ghost { background: transparent; color: var(--text2); border: 1px solid var(--border); }
+.btn-ghost:hover { background: var(--surface2); color: var(--text); }
+.btn-dark { background: var(--black); color: white; }
+.btn-sm { padding: 5px 12px; font-size: 12px; }
+.btn-icon { padding: 7px; border-radius: 7px; }
+
+/* === CARDS === */
+.card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 12px; overflow: hidden;
+  transition: box-shadow .2s, transform .2s;
+}
+.card:hover { box-shadow: 0 8px 24px rgba(0,0,0,.09); transform: translateY(-2px); }
+.card-header { padding: 16px 20px 12px; border-bottom: 1px solid var(--border); }
+.card-body { padding: 16px 20px; }
+
+/* === KPI BADGES === */
+.kpi-green { color: var(--green); }
+.kpi-yellow { color: var(--yellow); }
+.kpi-red { color: var(--red); }
+.badge-green { background: #DCFCE7; color: var(--green); }
+.badge-yellow { background: #FEF3C7; color: var(--yellow); }
+.badge-red { background: #FEE2E2; color: #DC2626; }
+.dark .badge-green { background: #14532D; color: #86EFAC; }
+.dark .badge-yellow { background: #451A03; color: #FCD34D; }
+.dark .badge-red { background: #450A0A; color: #FCA5A5; }
+.badge { display: inline-flex; align-items: center; gap: 4px; padding: 2px 9px; border-radius: 99px; font-size: 11px; font-weight: 600; }
+
+/* === HEALTH DOT === */
+.dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+.dot-green { background: var(--green); box-shadow: 0 0 6px var(--green); }
+.dot-yellow { background: var(--yellow); box-shadow: 0 0 6px var(--yellow); }
+.dot-red { background: var(--red); box-shadow: 0 0 6px var(--red); animation: pulse 1.5s ease-in-out infinite; }
+@keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .5; } }
+
+/* === DASHBOARD CARD === */
+.dash-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 14px; overflow: hidden; cursor: pointer;
+  transition: all .2s; position: relative;
+}
+.dash-card:hover { box-shadow: 0 10px 30px rgba(232,25,44,.12); transform: translateY(-3px); border-color: var(--red); }
+.dash-card .top-stripe { height: 4px; background: linear-gradient(90deg, var(--red), var(--red-dark)); }
+.dash-card.Finance .top-stripe { background: linear-gradient(90deg, #059669, #047857); }
+.dash-card.Sales .top-stripe { background: linear-gradient(90deg, #2563EB, #1D4ED8); }
+.dash-card.HR .top-stripe { background: linear-gradient(90deg, #7C3AED, #6D28D9); }
+.dash-card.Operations .top-stripe { background: linear-gradient(90deg, var(--red), var(--red-dark)); }
+
+/* === MODAL === */
+.modal-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,.65);
+  z-index: 200; display: flex; align-items: center; justify-content: center;
+  padding: 20px; opacity: 0; pointer-events: none; transition: opacity .2s;
+}
+.modal-overlay.show { opacity: 1; pointer-events: all; }
+.modal {
+  background: var(--surface); border-radius: 16px; max-width: 640px;
+  width: 100%; max-height: 90vh; overflow-y: auto;
+  transform: translateY(20px) scale(.97); transition: transform .2s;
+  box-shadow: 0 25px 60px rgba(0,0,0,.3);
+}
+.modal-overlay.show .modal { transform: translateY(0) scale(1); }
+.modal-header {
+  padding: 20px 24px 16px; border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+}
+.modal-header h2 { font-size: 18px; font-weight: 700; }
+.modal-body { padding: 24px; }
+.modal-footer { padding: 16px 24px; border-top: 1px solid var(--border); display: flex; gap: 10px; justify-content: flex-end; }
+
+/* === FORM INPUTS === */
+.form-group { margin-bottom: 16px; }
+.form-label { display: block; font-size: 12px; font-weight: 600; color: var(--text2); margin-bottom: 6px; text-transform: uppercase; letter-spacing: .06em; }
+.form-input {
+  width: 100%; padding: 10px 14px;
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 8px; color: var(--text); font-size: 13.5px;
+  outline: none; transition: border .15s; font-family: inherit;
+}
+.form-input:focus { border-color: var(--red); background: var(--surface); }
+.form-select { appearance: none; cursor: pointer; }
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+
+/* === TOAST === */
+#toastContainer { position: fixed; bottom: 24px; right: 24px; z-index: 999; display: flex; flex-direction: column; gap: 10px; }
+.toast {
+  display: flex; align-items: center; gap: 10px;
+  background: var(--black); color: white; padding: 12px 18px;
+  border-radius: 10px; font-size: 13px; font-weight: 500;
+  box-shadow: 0 8px 20px rgba(0,0,0,.25); min-width: 260px;
+  transform: translateX(100%); opacity: 0;
+  transition: all .3s cubic-bezier(.34,1.56,.64,1);
+  border-left: 3px solid var(--red);
+}
+.toast.show { transform: translateX(0); opacity: 1; }
+.toast.success { border-left-color: var(--green); }
+.toast.error { border-left-color: #DC2626; }
+.toast.warning { border-left-color: var(--yellow); }
+
+/* === SKELETON === */
+.skeleton { background: linear-gradient(90deg, var(--surface2) 25%, var(--border) 50%, var(--surface2) 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; border-radius: 6px; }
+@keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+/* === PAGE TRANSITIONS === */
+.page { display: none; }
+.page.active { display: block; animation: fadeIn .25s ease; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+/* === SWOT GRID === */
+.swot-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0; border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+.swot-cell { padding: 18px 20px; }
+.swot-cell h4 { font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: .1em; margin-bottom: 10px; }
+.swot-cell ul { list-style: none; display: flex; flex-direction: column; gap: 5px; }
+.swot-cell li { font-size: 12.5px; color: var(--text2); padding-left: 14px; position: relative; line-height: 1.5; }
+.swot-cell li::before { content: '•'; position: absolute; left: 0; }
+.swot-S { background: #F0FDF4; } .dark .swot-S { background: #052E16; }
+.swot-S h4 { color: var(--green); } .swot-S li::before { color: var(--green); }
+.swot-W { background: #FFF1F2; border-left: 1px solid var(--border); } .dark .swot-W { background: #450A0A; }
+.swot-W h4 { color: #DC2626; } .swot-W li::before { color: #DC2626; }
+.swot-O { background: #FFFBEB; border-top: 1px solid var(--border); } .dark .swot-O { background: #451A03; }
+.swot-O h4 { color: var(--yellow); } .swot-O li::before { color: var(--yellow); }
+.swot-T { background: #FFF7ED; border-left: 1px solid var(--border); border-top: 1px solid var(--border); } .dark .swot-T { background: #431407; }
+.swot-T h4 { color: var(--orange); } .swot-T li::before { color: var(--orange); }
+
+/* === KPI PROGRESS BAR === */
+.kpi-bar { height: 5px; background: var(--border); border-radius: 3px; overflow: hidden; }
+.kpi-bar-fill { height: 100%; border-radius: 3px; transition: width .6s ease; }
+
+/* === COMPARISON MODE === */
+.compare-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+@media (max-width: 900px) { .compare-grid { grid-template-columns: 1fr; } }
+
+/* === STAT CARDS === */
+.stat-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 12px; padding: 20px;
+}
+.stat-card .val { font-family: 'Bebas Neue', sans-serif; font-size: 36px; line-height: 1; color: var(--red); }
+.stat-card .lbl { font-size: 12px; color: var(--text3); font-weight: 600; text-transform: uppercase; letter-spacing: .07em; margin-top: 2px; }
+.stat-card .chg { font-size: 12px; font-weight: 600; margin-top: 6px; }
+.stat-card .chg.up { color: var(--green); }
+.stat-card .chg.dn { color: #DC2626; }
+
+/* === FULLSCREEN IFRAME === */
+.iframe-wrap { position: relative; width: 100%; padding-bottom: 56.25%; background: var(--surface2); border-radius: 10px; overflow: hidden; }
+.iframe-wrap iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: none; }
+.iframe-placeholder { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; }
+
+/* === TOPBAR AVATAR === */
+.avatar { width: 34px; height: 34px; border-radius: 50%; background: var(--red); color: white; font-weight: 700; font-size: 13px; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+
+/* === DEPT PILL === */
+.dept-pill { padding: 3px 10px; border-radius: 99px; font-size: 11px; font-weight: 700; display: inline-block; }
+.dept-Finance { background: #DCFCE7; color: #166534; }
+.dept-Sales { background: #DBEAFE; color: #1E40AF; }
+.dept-HR { background: #EDE9FE; color: #5B21B6; }
+.dept-Operations { background: #FEE2E2; color: #9B1C1C; }
+.dark .dept-Finance { background: #052E16; color: #86EFAC; }
+.dark .dept-Sales { background: #1E3A5F; color: #93C5FD; }
+.dark .dept-HR { background: #2E1065; color: #C4B5FD; }
+.dark .dept-Operations { background: #450A0A; color: #FCA5A5; }
+
+/* === HAMBURGER === */
+#sidebarToggle { display: none; }
+@media (max-width: 768px) {
+  #sidebarToggle { display: flex; }
+  #sidebar { transform: translateX(-100%); }
+  #sidebar.open { transform: translateX(0); }
+  #mainContent { margin-left: 0 !important; }
+  .form-row { grid-template-columns: 1fr; }
+}
+
+/* === HEADER WAVE === */
+.page-header {
+  background: linear-gradient(135deg, var(--red) 0%, var(--red-dark) 60%, #7B0000 100%);
+  padding: 28px 32px 36px; color: white; position: relative; overflow: hidden;
+}
+.page-header::after {
+  content: ''; position: absolute; bottom: -1px; left: 0; right: 0;
+  height: 28px; background: var(--bg);
+  clip-path: ellipse(55% 100% at 50% 100%);
+}
+.page-header .wave-text { font-family: 'Bebas Neue'; font-size: 11px; letter-spacing: .2em; text-transform: uppercase; opacity: .7; }
+
+/* === TABS === */
+.tab-bar { display: flex; gap: 4px; border-bottom: 2px solid var(--border); margin-bottom: 20px; }
+.tab { padding: 10px 18px; font-size: 13px; font-weight: 600; color: var(--text2); cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all .15s; }
+.tab:hover { color: var(--text); }
+.tab.active { color: var(--red); border-bottom-color: var(--red); }
+
+/* === DROPDOWN MENU === */
+.dropdown { position: relative; }
+.dropdown-menu {
+  position: absolute; right: 0; top: calc(100% + 8px);
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 10px; min-width: 180px; z-index: 300;
+  box-shadow: 0 8px 24px rgba(0,0,0,.12); overflow: hidden;
+  opacity: 0; pointer-events: none; transform: translateY(-8px); transition: all .15s;
+}
+.dropdown.open .dropdown-menu { opacity: 1; pointer-events: all; transform: translateY(0); }
+.dropdown-item { padding: 10px 16px; font-size: 13px; cursor: pointer; color: var(--text2); transition: background .1s; display: flex; align-items: center; gap: 10px; }
+.dropdown-item:hover { background: var(--surface2); color: var(--text); }
+.dropdown-item.danger { color: #DC2626; }
+.dropdown-item.danger:hover { background: #FEE2E2; }
+
+/* === REFRESH BADGE === */
+.refresh-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green); display: inline-block; animation: pulse 2s infinite; }
+
+/* === TABLE === */
+.data-table { width: 100%; border-collapse: collapse; }
+.data-table th { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .07em; color: var(--text3); padding: 10px 16px; text-align: left; border-bottom: 2px solid var(--border); background: var(--surface2); }
+.data-table td { padding: 12px 16px; font-size: 13.5px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+.data-table tr:last-child td { border-bottom: none; }
+.data-table tr:hover td { background: var(--surface2); }
+
+/* === LIST VIEW === */
+.list-item { display: flex; align-items: center; padding: 14px 20px; border-bottom: 1px solid var(--border); cursor: pointer; transition: background .1s; gap: 16px; }
+.list-item:hover { background: var(--surface2); }
+.list-item:last-child { border-bottom: none; }
+
+/* === SCROLLABLE PANEL === */
+.scroll-panel { max-height: 320px; overflow-y: auto; }
+
+/* === AI INSIGHT CARD === */
+.insight-card { background: linear-gradient(135deg, var(--black) 0%, #1f1f1f 100%); color: white; border-radius: 12px; padding: 20px; }
+.insight-card .rating-badge { display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px; border-radius: 99px; font-size: 11px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+.rating-Excellent { background: rgba(22,163,74,.2); color: #86EFAC; border: 1px solid rgba(22,163,74,.4); }
+.rating-Good { background: rgba(59,130,246,.2); color: #93C5FD; border: 1px solid rgba(59,130,246,.4); }
+.rating-Moderate { background: rgba(217,119,6,.2); color: #FCD34D; border: 1px solid rgba(217,119,6,.4); }
+.rating-Critical { background: rgba(220,38,38,.2); color: #FCA5A5; border: 1px solid rgba(220,38,38,.4); }
+
+.spinner { display: inline-block; width: 18px; height: 18px; border: 2px solid rgba(255,255,255,.3); border-top-color: white; border-radius: 50%; animation: spin .6s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.spinner-red { border-color: rgba(232,25,44,.2); border-top-color: var(--red); }
+</style>
+</head>
+<body>
+
+<!-- ===================== LOGIN PAGE ===================== -->
+<div id="loginPage" style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:var(--bg);padding:20px;">
+  <div style="width:100%;max-width:420px;">
+    <!-- Logo -->
+    <div style="text-align:center;margin-bottom:28px;">
+      <img id="loginLogo" src="" alt="SLMG Beverages" style="height:72px;object-fit:contain;margin:0 auto;">
+    </div>
+    <!-- Card -->
+    <div class="card" style="border-radius:18px;overflow:hidden;">
+      <div style="background:linear-gradient(135deg,var(--red),var(--red-dark));padding:24px 28px 20px;">
+        <h1 style="font-family:'Bebas Neue';font-size:30px;color:white;letter-spacing:.05em;">Enterprise BI Portal</h1>
+        <p style="color:rgba(255,255,255,.75);font-size:13px;margin-top:4px;">Sign in to access your dashboards</p>
+      </div>
+      <div style="padding:28px;">
+        <div id="loginError" style="display:none;background:#FEE2E2;border:1px solid #FCA5A5;border-radius:8px;padding:10px 14px;font-size:13px;color:#9B1C1C;margin-bottom:16px;"></div>
+        <div class="form-group">
+          <label class="form-label">Email Address</label>
+          <input type="email" id="loginEmail" class="form-input" placeholder="admin@slmg.com" autocomplete="email">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Password</label>
+          <input type="password" id="loginPass" class="form-input" placeholder="••••••••" autocomplete="current-password">
+        </div>
+        <button class="btn btn-red" style="width:100%;justify-content:center;padding:11px;" onclick="doLogin()">
+          <span id="loginBtnText">Sign In</span>
+          <span id="loginSpinner" style="display:none;" class="spinner"></span>
+        </button>
+        <div style="margin-top:18px;padding:14px;background:var(--surface2);border-radius:10px;font-size:12px;color:var(--text3);">
+          <strong style="color:var(--text2);display:block;margin-bottom:6px;">Demo Accounts</strong>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;">
+            <span>🔴 admin@slmg.com / Admin@1234</span>
+            <span>🟢 finance@slmg.com / Finance@1234</span>
+            <span>🔵 sales@slmg.com / Sales@1234</span>
+            <span>🟣 hr@slmg.com / HR@1234</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <p style="text-align:center;margin-top:16px;font-size:11px;color:var(--text3);">© 2025 SLMG Beverages Pvt. Ltd. — United to Grow Ahead</p>
+  </div>
+</div>
+
+<!-- ===================== MAIN APP ===================== -->
+<div id="mainApp" style="display:none;">
+<div id="app">
+
+  <!-- SIDEBAR -->
+  <nav id="sidebar">
+    <!-- Logo -->
+    <div class="s-logo">
+      <img id="sidebarLogo" src="" alt="SLMG" style="height:42px;">
+      <div style="font-size:9px;color:#555;letter-spacing:.12em;text-transform:uppercase;margin-top:4px;">Enterprise BI Portal</div>
+    </div>
+
+    <!-- User badge -->
+    <div style="padding:12px 16px;border-bottom:1px solid #222;">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <div id="sbAvatar" class="avatar" style="width:32px;height:32px;font-size:12px;">A</div>
+        <div>
+          <div id="sbName" style="font-size:13px;font-weight:600;color:#e5e7eb;">Admin User</div>
+          <div id="sbRole" style="font-size:10px;color:#6B7280;letter-spacing:.05em;">ADMIN • OPERATIONS</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Navigation -->
+    <div class="s-section" style="flex:1;">
+      <div class="s-label">Navigation</div>
+      <div class="nav-item active" data-page="overview" onclick="navTo('overview')">
+        <span class="icon">📊</span><span>Overview</span>
+      </div>
+      <div class="nav-item" data-page="dashboards" onclick="navTo('dashboards')">
+        <span class="icon">🗂️</span><span>Dashboards</span>
+        <span class="badge" id="dashCount">0</span>
+      </div>
+      <div class="nav-item" data-page="analytics" onclick="navTo('analytics')">
+        <span class="icon">🧠</span><span>Analytics & AI</span>
+      </div>
+      <div class="nav-item" data-page="compare" onclick="navTo('compare')">
+        <span class="icon">⚖️</span><span>Compare Mode</span>
+      </div>
+      <div class="nav-item" data-page="bookmarks" onclick="navTo('bookmarks')">
+        <span class="icon">🔖</span><span>Bookmarks</span>
+      </div>
+
+      <div class="s-label" style="margin-top:8px;">Admin</div>
+      <div class="nav-item admin-only" data-page="users" onclick="navTo('users')">
+        <span class="icon">👥</span><span>User Management</span>
+      </div>
+      <div class="nav-item admin-only" data-page="activity" onclick="navTo('activity')">
+        <span class="icon">📋</span><span>Activity Log</span>
+      </div>
+    </div>
+
+    <!-- Bottom controls -->
+    <div style="padding:12px 16px;border-top:1px solid #222;display:flex;flex-direction:column;gap:8px;">
+      <!-- Auto refresh -->
+      <div style="display:flex;align-items:center;justify-content:space-between;">
+        <span style="font-size:11px;color:#6B7280;display:flex;align-items:center;gap:6px;">
+          <span class="refresh-dot" id="refreshDot"></span>
+          Auto Refresh
+        </span>
+        <label style="position:relative;display:inline-block;width:34px;height:18px;cursor:pointer;">
+          <input type="checkbox" id="autoRefreshToggle" style="opacity:0;position:absolute;" onchange="toggleAutoRefresh()">
+          <span id="autoRefreshSlider" style="position:absolute;inset:0;background:#374151;border-radius:9px;transition:.2s;"></span>
+          <span id="autoRefreshThumb" style="position:absolute;left:2px;top:2px;width:14px;height:14px;background:white;border-radius:50%;transition:.2s;"></span>
+        </label>
+      </div>
+      <!-- Dark mode -->
+      <div style="display:flex;align-items:center;justify-content:space-between;">
+        <span style="font-size:11px;color:#6B7280;">🌙 Dark Mode</span>
+        <label style="position:relative;display:inline-block;width:34px;height:18px;cursor:pointer;">
+          <input type="checkbox" id="darkToggle" style="opacity:0;position:absolute;" onchange="toggleDark()">
+          <span id="darkSlider" style="position:absolute;inset:0;background:#374151;border-radius:9px;transition:.2s;"></span>
+          <span id="darkThumb" style="position:absolute;left:2px;top:2px;width:14px;height:14px;background:white;border-radius:50%;transition:.2s;"></span>
+        </label>
+      </div>
+      <button class="btn btn-ghost btn-sm" style="justify-content:center;color:#EF4444;border-color:#3F2020;" onclick="doLogout()">
+        🚪 Sign Out
+      </button>
+    </div>
+  </nav>
+
+  <!-- MAIN CONTENT -->
+  <main id="mainContent">
+    <!-- TOPBAR -->
+    <div id="topbar">
+      <button id="sidebarToggle" class="btn btn-icon btn-ghost" onclick="toggleSidebar()">☰</button>
+      <div class="search-box">
+        <span class="search-icon">🔍</span>
+        <input type="text" id="globalSearch" placeholder="Search dashboards, KPIs..." oninput="handleSearch()">
+      </div>
+      <div style="margin-left:auto;display:flex;align-items:center;gap:10px;">
+        <!-- Filter -->
+        <select id="deptFilter" class="form-input" style="width:140px;padding:7px 12px;font-size:12px;" onchange="filterDashboards()">
+          <option value="">All Departments</option>
+          <option value="Finance">Finance</option>
+          <option value="Sales">Sales</option>
+          <option value="HR">HR</option>
+          <option value="Operations">Operations</option>
+        </select>
+        <!-- View toggle -->
+        <div style="display:flex;gap:3px;">
+          <button id="gridViewBtn" class="btn btn-icon btn-red" title="Grid View" onclick="setView('grid')">⊞</button>
+          <button id="listViewBtn" class="btn btn-icon btn-ghost" title="List View" onclick="setView('list')">≡</button>
+        </div>
+        <!-- User menu -->
+        <div class="dropdown" id="userDropdown">
+          <div class="avatar" id="topAvatar" onclick="document.getElementById('userDropdown').classList.toggle('open')">A</div>
+          <div class="dropdown-menu">
+            <div class="dropdown-item" onclick="navTo('profile')">✏️ Edit Profile</div>
+            <div class="dropdown-item admin-only" onclick="navTo('users')">👥 Users</div>
+            <div style="border-top:1px solid var(--border);margin:4px 0;"></div>
+            <div class="dropdown-item danger" onclick="doLogout()">🚪 Sign Out</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PAGES CONTAINER -->
+    <div style="padding:24px 28px;flex:1;" id="pagesContainer">
+
+      <!-- ===== OVERVIEW PAGE ===== -->
+      <div id="page-overview" class="page active">
+        <div class="page-header" style="border-radius:14px;margin-bottom:24px;">
+          <div class="wave-text">Dashboard Overview</div>
+          <h1 style="font-size:32px;margin-top:2px;">Welcome back, <span id="welcomeName">Admin</span> 👋</h1>
+          <p style="opacity:.8;font-size:13px;margin-top:6px;" id="welcomeSub">SLMG Beverages Enterprise Business Intelligence Portal</p>
+        </div>
+
+        <!-- Stats Row -->
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px;" id="statsRow">
+          <div class="stat-card">
+            <div class="val" id="statDashboards">0</div>
+            <div class="lbl">Total Dashboards</div>
+          </div>
+          <div class="stat-card">
+            <div class="val" style="color:var(--green);" id="statGreen">0</div>
+            <div class="lbl">KPIs On Target</div>
+          </div>
+          <div class="stat-card">
+            <div class="val" style="color:var(--yellow);" id="statYellow">0</div>
+            <div class="lbl">KPIs Near Target</div>
+          </div>
+          <div class="stat-card">
+            <div class="val" style="color:#DC2626;" id="statRed">0</div>
+            <div class="lbl">KPIs At Risk</div>
+          </div>
+        </div>
+
+        <!-- Portfolio Health -->
+        <div style="display:grid;grid-template-columns:2fr 1fr;gap:20px;margin-bottom:24px;">
+          <div class="card">
+            <div class="card-header" style="display:flex;align-items:center;justify-content:space-between;">
+              <h3 style="font-size:14px;font-weight:700;">Department Performance</h3>
+              <span style="font-size:11px;color:var(--text3);" id="lastUpdated">Loading...</span>
+            </div>
+            <div class="card-body" id="deptPerf"></div>
+          </div>
+          <div class="card">
+            <div class="card-header">
+              <h3 style="font-size:14px;font-weight:700;">Portfolio Health Score</h3>
+            </div>
+            <div class="card-body" style="display:flex;flex-direction:column;align-items:center;gap:12px;">
+              <div style="position:relative;width:120px;height:120px;">
+                <svg viewBox="0 0 120 120" style="transform:rotate(-90deg)">
+                  <circle cx="60" cy="60" r="50" fill="none" stroke="var(--border)" stroke-width="12"/>
+                  <circle cx="60" cy="60" r="50" fill="none" stroke="var(--red)" stroke-width="12"
+                    stroke-dasharray="314" id="healthCircle" stroke-dashoffset="314"
+                    stroke-linecap="round" style="transition:stroke-dashoffset 1s ease;"/>
+                </svg>
+                <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column;">
+                  <div style="font-family:'Bebas Neue';font-size:28px;color:var(--red);" id="healthScore">0%</div>
+                  <div style="font-size:10px;color:var(--text3);letter-spacing:.05em;" id="healthLabel">LOADING</div>
+                </div>
+              </div>
+              <div id="healthBreakdown" style="font-size:12px;color:var(--text2);text-align:center;"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Recent Dashboards -->
+        <div class="card">
+          <div class="card-header" style="display:flex;align-items:center;justify-content:space-between;">
+            <h3 style="font-size:14px;font-weight:700;">Recent Dashboards</h3>
+            <button class="btn btn-ghost btn-sm" onclick="navTo('dashboards')">View All →</button>
+          </div>
+          <div id="recentDashboards" class="card-body"></div>
+        </div>
+      </div>
+
+      <!-- ===== DASHBOARDS PAGE ===== -->
+      <div id="page-dashboards" class="page">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+          <div>
+            <h2 style="font-family:'Bebas Neue';font-size:28px;">Dashboards</h2>
+            <p style="font-size:13px;color:var(--text2);" id="dashSubtitle">Loading...</p>
+          </div>
+          <button class="btn btn-red admin-only" onclick="openAddDashModal()">+ Add Dashboard</button>
+        </div>
+
+        <!-- Category filter tabs -->
+        <div class="tab-bar" id="categoryTabs">
+          <div class="tab active" data-cat="" onclick="filterByCategory('')">All</div>
+          <div class="tab" data-cat="Financial" onclick="filterByCategory('Financial')">Financial</div>
+          <div class="tab" data-cat="Sales" onclick="filterByCategory('Sales')">Sales</div>
+          <div class="tab" data-cat="People" onclick="filterByCategory('People')">People</div>
+          <div class="tab" data-cat="Operations" onclick="filterByCategory('Operations')">Operations</div>
+        </div>
+
+        <!-- Dashboard grid/list -->
+        <div id="dashGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:18px;"></div>
+        <div id="dashList" style="display:none;" class="card"></div>
+        <div id="dashEmpty" style="display:none;text-align:center;padding:60px 20px;color:var(--text3);">
+          <div style="font-size:48px;margin-bottom:12px;">📭</div>
+          <div style="font-size:16px;font-weight:600;">No dashboards found</div>
+          <div style="font-size:13px;margin-top:6px;">Try adjusting your search or filters</div>
+        </div>
+      </div>
+
+      <!-- ===== DASHBOARD DETAIL PAGE ===== -->
+      <div id="page-detail" class="page">
+        <button class="btn btn-ghost btn-sm" style="margin-bottom:16px;" onclick="navTo('dashboards')">← Back to Dashboards</button>
+        <div id="detailContent"></div>
+      </div>
+
+      <!-- ===== ANALYTICS PAGE ===== -->
+      <div id="page-analytics" class="page">
+        <div style="margin-bottom:24px;">
+          <h2 style="font-family:'Bebas Neue';font-size:28px;">Analytics & AI Insights</h2>
+          <p style="font-size:13px;color:var(--text2);">Select a dashboard to analyze KPI health, SWOT, and get AI-powered recommendations</p>
+        </div>
+        <div style="margin-bottom:20px;">
+          <select id="analyticsDashSelect" class="form-input" style="max-width:400px;" onchange="loadAnalytics()">
+            <option value="">— Select a Dashboard —</option>
+          </select>
+        </div>
+        <div id="analyticsContent" style="display:none;">
+          <!-- KPI Section -->
+          <div style="margin-bottom:24px;">
+            <h3 style="font-family:'Bebas Neue';font-size:22px;margin-bottom:14px;">KPI Performance</h3>
+            <div id="kpiGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:16px;"></div>
+          </div>
+          <!-- SWOT + AI -->
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:24px;">
+            <div>
+              <h3 style="font-family:'Bebas Neue';font-size:22px;margin-bottom:14px;">SWOT Analysis</h3>
+              <div id="swotContainer"></div>
+            </div>
+            <div>
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+                <h3 style="font-family:'Bebas Neue';font-size:22px;">AI Executive Briefing</h3>
+                <div style="display:flex;gap:8px;">
+                  <button class="btn btn-icon btn-ghost btn-sm" id="voiceBtn" title="Voice Summary" onclick="readAloud()" style="font-size:16px;">🔊</button>
+                  <button class="btn btn-red btn-sm" id="aiSummaryBtn" onclick="loadAISummary()">
+                    <span id="aiBtnText">✨ Generate</span>
+                    <span id="aiSpinner" style="display:none;" class="spinner"></span>
+                  </button>
+                </div>
+              </div>
+              <div id="aiContainer">
+                <div style="padding:32px;text-align:center;color:var(--text3);border:1px dashed var(--border);border-radius:12px;">
+                  <div style="font-size:32px;margin-bottom:8px;">🤖</div>
+                  <div style="font-size:13px;">Click "Generate" to get AI-powered insights based on real KPI data</div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <!-- Notes -->
+          <div class="card">
+            <div class="card-header" style="display:flex;align-items:center;justify-content:space-between;">
+              <h3 style="font-size:14px;font-weight:700;">📝 Dashboard Notes</h3>
+            </div>
+            <div class="card-body">
+              <div style="display:flex;gap:10px;margin-bottom:16px;">
+                <input type="text" id="noteInput" class="form-input" placeholder="Add a note..." style="flex:1;">
+                <button class="btn btn-red btn-sm" onclick="addNote()">Add Note</button>
+              </div>
+              <div id="notesList" class="scroll-panel"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== COMPARE PAGE ===== -->
+      <div id="page-compare" class="page">
+        <div style="margin-bottom:24px;">
+          <h2 style="font-family:'Bebas Neue';font-size:28px;">Comparison Mode</h2>
+          <p style="font-size:13px;color:var(--text2);">Compare two dashboards side by side</p>
+        </div>
+        <div style="display:flex;gap:12px;margin-bottom:24px;flex-wrap:wrap;">
+          <select id="compareSelect1" class="form-input" style="flex:1;max-width:320px;">
+            <option value="">— Dashboard A —</option>
+          </select>
+          <select id="compareSelect2" class="form-input" style="flex:1;max-width:320px;">
+            <option value="">— Dashboard B —</option>
+          </select>
+          <button class="btn btn-red" onclick="doCompare()">⚖️ Compare</button>
+        </div>
+        <div id="compareResult"></div>
+      </div>
+
+      <!-- ===== BOOKMARKS PAGE ===== -->
+      <div id="page-bookmarks" class="page">
+        <h2 style="font-family:'Bebas Neue';font-size:28px;margin-bottom:20px;">🔖 Bookmarks</h2>
+        <div id="bookmarkGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:18px;"></div>
+        <div id="bookmarkEmpty" style="display:none;text-align:center;padding:60px;color:var(--text3);">
+          <div style="font-size:48px;margin-bottom:12px;">🔖</div>
+          <div>No bookmarked dashboards yet</div>
+        </div>
+      </div>
+
+      <!-- ===== PROFILE PAGE ===== -->
+      <div id="page-profile" class="page">
+        <div style="max-width:520px;margin:0 auto;">
+          <h2 style="font-family:'Bebas Neue';font-size:28px;margin-bottom:24px;">Edit Profile</h2>
+          <div class="card">
+            <div class="card-body">
+              <div class="form-group">
+                <label class="form-label">Full Name</label>
+                <input type="text" id="profileName" class="form-input">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Email Address</label>
+                <input type="email" id="profileEmail" class="form-input" disabled style="opacity:.6;">
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label class="form-label">Department</label>
+                  <input type="text" id="profileDept" class="form-input" disabled style="opacity:.6;">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Role</label>
+                  <input type="text" id="profileRole" class="form-input" disabled style="opacity:.6;">
+                </div>
+              </div>
+              <hr style="border-color:var(--border);margin:20px 0;">
+              <h4 style="font-size:13px;font-weight:700;margin-bottom:14px;color:var(--text2);">CHANGE PASSWORD</h4>
+              <div class="form-group">
+                <label class="form-label">Current Password</label>
+                <input type="password" id="profileCurrentPass" class="form-input" placeholder="••••••••">
+              </div>
+              <div class="form-group">
+                <label class="form-label">New Password</label>
+                <input type="password" id="profileNewPass" class="form-input" placeholder="Min 6 characters">
+              </div>
+              <button class="btn btn-red" style="width:100%;justify-content:center;" onclick="saveProfile()">Save Changes</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== USERS PAGE ===== -->
+      <div id="page-users" class="page">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+          <h2 style="font-family:'Bebas Neue';font-size:28px;">User Management</h2>
+          <button class="btn btn-red" onclick="openAddUserModal()">+ Add User</button>
+        </div>
+        <div class="card" style="overflow:hidden;">
+          <table class="data-table" id="usersTable">
+            <thead>
+              <tr>
+                <th>Name</th><th>Email</th><th>Role</th><th>Department</th>
+                <th>Status</th><th>Created</th><th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="usersTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ===== ACTIVITY LOG PAGE ===== -->
+      <div id="page-activity" class="page">
+        <h2 style="font-family:'Bebas Neue';font-size:28px;margin-bottom:20px;">Activity Log</h2>
+        <div class="card" style="overflow:hidden;">
+          <table class="data-table">
+            <thead>
+              <tr><th>Time</th><th>User</th><th>Action</th><th>Entity</th></tr>
+            </thead>
+            <tbody id="activityTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+    </div><!-- /pagesContainer -->
+  </main>
+</div>
+</div>
+
+<!-- ===================== MODALS ===================== -->
+
+<!-- Add Dashboard Modal -->
+<div class="modal-overlay" id="addDashModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h2>Add New Dashboard</h2>
+      <button class="btn btn-icon btn-ghost" onclick="closeModal('addDashModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Dashboard Title *</label>
+          <input type="text" id="newDashTitle" class="form-input" placeholder="e.g. Q1 Finance Overview">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Category *</label>
+          <select id="newDashCat" class="form-input form-select">
+            <option value="Financial">Financial</option>
+            <option value="Sales">Sales</option>
+            <option value="People">People</option>
+            <option value="Operations">Operations</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Power BI Embed URL *</label>
+        <input type="url" id="newDashUrl" class="form-input" placeholder="https://app.powerbi.com/view?r=...">
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Department *</label>
+          <select id="newDashDept" class="form-input form-select">
+            <option value="Finance">Finance</option>
+            <option value="Sales">Sales</option>
+            <option value="HR">HR</option>
+            <option value="Operations">Operations</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Tags (comma-separated)</label>
+          <input type="text" id="newDashTags" class="form-input" placeholder="revenue, Q1, forecast">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Commentary</label>
+        <textarea id="newDashCommentary" class="form-input" rows="3" style="resize:vertical;" placeholder="Management commentary..."></textarea>
+      </div>
+      <!-- KPIs section -->
+      <div style="border:1px solid var(--border);border-radius:10px;padding:16px;background:var(--surface2);">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+          <label class="form-label" style="margin:0;">KPI Targets</label>
+          <button class="btn btn-ghost btn-sm" onclick="addKPIRow()">+ Add KPI</button>
+        </div>
+        <div id="kpiRows" style="display:flex;flex-direction:column;gap:8px;"></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('addDashModal')">Cancel</button>
+      <button class="btn btn-red" onclick="saveDashboard()">
+        <span id="saveDashText">Create Dashboard</span>
+        <span id="saveDashSpinner" style="display:none;" class="spinner"></span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Add User Modal -->
+<div class="modal-overlay" id="addUserModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 id="userModalTitle">Add New User</h2>
+      <button class="btn btn-icon btn-ghost" onclick="closeModal('addUserModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Full Name *</label>
+          <input type="text" id="newUserName" class="form-input" placeholder="John Doe">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Email Address *</label>
+          <input type="email" id="newUserEmail" class="form-input" placeholder="john@slmg.com">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Password *</label>
+        <input type="password" id="newUserPass" class="form-input" placeholder="Min 6 characters">
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Role *</label>
+          <select id="newUserRole" class="form-input form-select">
+            <option value="Viewer">Viewer</option>
+            <option value="Analyst">Analyst</option>
+            <option value="Admin">Admin</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Department *</label>
+          <select id="newUserDept" class="form-input form-select">
+            <option value="Finance">Finance</option>
+            <option value="Sales">Sales</option>
+            <option value="HR">HR</option>
+            <option value="Operations">Operations</option>
+          </select>
+        </div>
+      </div>
+      <input type="hidden" id="editUserId">
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('addUserModal')">Cancel</button>
+      <button class="btn btn-red" onclick="saveUser()">
+        <span id="saveUserText">Create User</span>
+        <span id="saveUserSpinner" style="display:none;" class="spinner"></span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Fullscreen Dashboard Modal -->
+<div class="modal-overlay" id="fullscreenModal" style="padding:0;align-items:stretch;">
+  <div style="background:var(--black);width:100%;height:100%;display:flex;flex-direction:column;">
+    <div style="padding:12px 20px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #333;">
+      <span id="fullscreenTitle" style="color:white;font-weight:600;font-size:14px;"></span>
+      <button class="btn btn-ghost btn-sm" style="color:white;border-color:#555;" onclick="closeModal('fullscreenModal')">✕ Exit Fullscreen</button>
+    </div>
+    <div style="flex:1;padding:12px;">
+      <iframe id="fullscreenIframe" style="width:100%;height:100%;border:none;border-radius:8px;" src="" allow="fullscreen"></iframe>
+    </div>
+  </div>
+</div>
+
+<!-- Toast Container -->
+<div id="toastContainer"></div>
+
+<!-- ===================== JAVASCRIPT ===================== -->
+<script>
+// ============================================================
+// SLMG BI PORTAL — FRONTEND JAVASCRIPT ENGINE
+// ============================================================
+
+const LOGO_B64 = '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';
+const API = '';  // Same origin — Flask serves both
+
+// ── State ──────────────────────────────────────────────────
+let STATE = {
+  token: localStorage.getItem('slmg_token') || '',
+  user: JSON.parse(localStorage.getItem('slmg_user') || 'null'),
+  dashboards: [],
+  filteredDashboards: [],
+  view: 'grid',
+  category: '',
+  currentDashboard: null,
+  analyticsId: null,
+  aiSummary: null,
+  autoRefreshInterval: null,
+  editingUserId: null,
+};
+
+// ── Logo Setup ──────────────────────────────────────────────
+function setupLogos() {
+  const src = `data:image/webp;base64,${LOGO_B64}`;
+  document.querySelectorAll('#loginLogo,#sidebarLogo').forEach(el => el.src = src);
+}
+setupLogos();
+
+// ── API Helper ──────────────────────────────────────────────
+async function api(method, path, body = null) {
+  const headers = { 'Content-Type': 'application/json' };
+  if (STATE.token) headers['Authorization'] = `Bearer ${STATE.token}`;
+  const opts = { method, headers, credentials: 'include' };
+  if (body) opts.body = JSON.stringify(body);
+  const res = await fetch(API + path, opts);
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || data.message || `HTTP ${res.status}`);
+  return data;
+}
+
+// ── Auth ────────────────────────────────────────────────────
+async function doLogin() {
+  const email = document.getElementById('loginEmail').value.trim();
+  const pass = document.getElementById('loginPass').value;
+  const err = document.getElementById('loginError');
+  err.style.display = 'none';
+  if (!email || !pass) { showLoginError('Email and password are required'); return; }
+
+  setBtnLoading('loginBtnText', 'loginSpinner', true);
+  try {
+    const data = await api('POST', '/api/auth/login', { email, password: pass });
+    STATE.token = data.token;
+    STATE.user = data.user;
+    localStorage.setItem('slmg_token', data.token);
+    localStorage.setItem('slmg_user', JSON.stringify(data.user));
+    bootApp();
+  } catch (e) {
+    showLoginError(e.message);
+  } finally {
+    setBtnLoading('loginBtnText', 'loginSpinner', false, 'Sign In');
+  }
+}
+
+function showLoginError(msg) {
+  const el = document.getElementById('loginError');
+  el.textContent = msg;
+  el.style.display = 'block';
+}
+
+async function doLogout() {
+  try { await api('POST', '/api/auth/logout'); } catch (e) {}
+  STATE.token = ''; STATE.user = null;
+  localStorage.removeItem('slmg_token'); localStorage.removeItem('slmg_user');
+  if (STATE.autoRefreshInterval) clearInterval(STATE.autoRefreshInterval);
+  document.getElementById('mainApp').style.display = 'none';
+  document.getElementById('loginPage').style.display = 'flex';
+  document.getElementById('loginEmail').value = '';
+  document.getElementById('loginPass').value = '';
+}
+
+// Enter key login
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && document.getElementById('loginPage').style.display !== 'none') doLogin();
+});
+
+// ── Boot App ─────────────────────────────────────────────────
+function bootApp() {
+  document.getElementById('loginPage').style.display = 'none';
+  document.getElementById('mainApp').style.display = 'block';
+  updateUserUI();
+  applyAdminVisibility();
+  loadDashboards();
+  loadPortfolioStats();
+  navTo('overview');
+  toast('Welcome back, ' + STATE.user.name + '!', 'success');
+}
+
+function updateUserUI() {
+  const u = STATE.user;
+  if (!u) return;
+  const initials = u.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+  document.getElementById('sbAvatar').textContent = initials;
+  document.getElementById('topAvatar').textContent = initials;
+  document.getElementById('sbName').textContent = u.name;
+  document.getElementById('sbRole').textContent = `${u.role.toUpperCase()} • ${u.department.toUpperCase()}`;
+  document.getElementById('welcomeName').textContent = u.name.split(' ')[0];
+  document.getElementById('welcomeSub').textContent = `${u.role} — ${u.department} Department`;
+  // Profile page
+  document.getElementById('profileName').value = u.name;
+  document.getElementById('profileEmail').value = u.email;
+  document.getElementById('profileDept').value = u.department;
+  document.getElementById('profileRole').value = u.role;
+}
+
+function applyAdminVisibility() {
+  const isAdmin = STATE.user?.role === 'Admin';
+  document.querySelectorAll('.admin-only').forEach(el => {
+    el.style.display = isAdmin ? '' : 'none';
+  });
+}
+
+// ── Navigation ───────────────────────────────────────────────
+function navTo(page) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  const pg = document.getElementById(`page-${page}`);
+  if (pg) pg.classList.add('active');
+  const ni = document.querySelector(`.nav-item[data-page="${page}"]`);
+  if (ni) ni.classList.add('active');
+  document.getElementById('userDropdown').classList.remove('open');
+
+  // Lazy page loads
+  if (page === 'analytics') populateAnalyticsSelects();
+  if (page === 'compare') populateCompareSelects();
+  if (page === 'bookmarks') loadBookmarks();
+  if (page === 'users' && STATE.user?.role === 'Admin') loadUsers();
+  if (page === 'activity' && STATE.user?.role === 'Admin') loadActivity();
+}
+
+function toggleSidebar() {
+  document.getElementById('sidebar').classList.toggle('open');
+}
+
+// ── Dashboards ───────────────────────────────────────────────
+async function loadDashboards() {
+  try {
+    const data = await api('GET', '/api/dashboards/');
+    STATE.dashboards = data.dashboards;
+    STATE.filteredDashboards = [...STATE.dashboards];
+    renderDashboards();
+    document.getElementById('dashCount').textContent = STATE.dashboards.length;
+    document.getElementById('dashSubtitle').textContent = `${STATE.dashboards.length} dashboards in ${STATE.user.department} scope`;
+    updateRecentDashboards();
+  } catch (e) {
+    toast('Failed to load dashboards: ' + e.message, 'error');
+  }
+}
+
+function renderDashboards() {
+  const grid = document.getElementById('dashGrid');
+  const list = document.getElementById('dashList');
+  const empty = document.getElementById('dashEmpty');
+  const data = STATE.filteredDashboards;
+
+  if (!data.length) {
+    grid.innerHTML = ''; list.innerHTML = '';
+    grid.style.display = 'none'; list.style.display = 'none';
+    empty.style.display = 'block'; return;
+  }
+  empty.style.display = 'none';
+
+  if (STATE.view === 'grid') {
+    grid.style.display = 'grid'; list.style.display = 'none';
+    grid.innerHTML = data.map(d => renderDashCard(d)).join('');
+  } else {
+    grid.style.display = 'none'; list.style.display = 'block';
+    list.innerHTML = `<div>${data.map(d => renderDashListItem(d)).join('')}</div>`;
+  }
+}
+
+function renderDashCard(d) {
+  const s = d.kpi_summary || {};
+  const pct = s.score || 0;
+  const dotCls = pct >= 80 ? 'dot-green' : pct >= 60 ? 'dot-yellow' : 'dot-red';
+  const tags = (d.tags || []).slice(0, 3).map(t => `<span style="background:var(--surface2);border:1px solid var(--border);padding:2px 8px;border-radius:99px;font-size:10px;color:var(--text2);">${t}</span>`).join('');
+  const bookmarkIcon = d.is_bookmarked ? '🔖' : '🔗';
+
+  return `<div class="dash-card ${d.department}" onclick="openDashboard(${d.id})" draggable="true">
+    <div class="top-stripe"></div>
+    <div style="padding:16px 18px;">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:10px;">
+        <span class="dept-pill dept-${d.department}">${d.department}</span>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span class="dot ${dotCls}"></span>
+          <button onclick="event.stopPropagation();toggleBookmark(${d.id})" style="background:none;border:none;cursor:pointer;font-size:14px;" title="Bookmark">${bookmarkIcon}</button>
+        </div>
+      </div>
+      <h3 style="font-size:15px;font-weight:700;margin-bottom:4px;line-height:1.3;">${d.title}</h3>
+      <p style="font-size:12px;color:var(--text3);margin-bottom:12px;">${d.category} • ${new Date(d.created_at).toLocaleDateString()}</p>
+      ${tags ? `<div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:12px;">${tags}</div>` : ''}
+      <!-- KPI mini bars -->
+      <div style="display:flex;flex-direction:column;gap:5px;margin-bottom:12px;">
+        ${(d.kpis || []).slice(0, 3).map(k => `
+          <div>
+            <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text3);margin-bottom:2px;">
+              <span>${k.name}</span><span>${k.value} / ${k.target}</span>
+            </div>
+            <div class="kpi-bar">
+              <div class="kpi-bar-fill" style="width:${Math.min(100, (k.value/k.target)*100)}%;background:${(k.value/k.target)>=1?'var(--green)':(k.value/k.target)>=.9?'var(--yellow)':'var(--red)'};"></div>
+            </div>
+          </div>`).join('')}
+      </div>
+      <!-- Footer -->
+      <div style="display:flex;align-items:center;justify-content:space-between;padding-top:10px;border-top:1px solid var(--border);">
+        <div style="font-size:11px;color:var(--text3);">
+          <span class="badge ${pct>=80?'badge-green':pct>=60?'badge-yellow':'badge-red'}">${s.label || '—'}</span>
+        </div>
+        <div style="font-size:12px;font-weight:700;color:var(--text2);">
+          ${s.green || 0}✅ ${s.yellow || 0}⚠️ ${s.red || 0}🔴
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+
+function renderDashListItem(d) {
+  const s = d.kpi_summary || {};
+  const pct = s.score || 0;
+  const dotCls = pct >= 80 ? 'dot-green' : pct >= 60 ? 'dot-yellow' : 'dot-red';
+  return `<div class="list-item" onclick="openDashboard(${d.id})">
+    <span class="dot ${dotCls}"></span>
+    <div style="flex:1;">
+      <div style="font-weight:600;font-size:14px;">${d.title}</div>
+      <div style="font-size:12px;color:var(--text3);">${d.category} • ${d.department}</div>
+    </div>
+    <span class="badge ${pct>=80?'badge-green':pct>=60?'badge-yellow':'badge-red'}">${s.label || '—'}</span>
+    <span style="font-size:12px;color:var(--text3);">${(d.kpis||[]).length} KPIs</span>
+    <button onclick="event.stopPropagation();toggleBookmark(${d.id})" style="background:none;border:none;cursor:pointer;font-size:14px;">${d.is_bookmarked?'🔖':'🔗'}</button>
+  </div>`;
+}
+
+function handleSearch() {
+  const q = document.getElementById('globalSearch').value.toLowerCase();
+  applyFilters();
+}
+
+function filterDashboards() {
+  applyFilters();
+}
+
+function filterByCategory(cat) {
+  STATE.category = cat;
+  document.querySelectorAll('#categoryTabs .tab').forEach(t => {
+    t.classList.toggle('active', t.dataset.cat === cat);
+  });
+  applyFilters();
+}
+
+function applyFilters() {
+  const search = document.getElementById('globalSearch').value.toLowerCase();
+  const dept = document.getElementById('deptFilter').value;
+  const cat = STATE.category;
+
+  STATE.filteredDashboards = STATE.dashboards.filter(d => {
+    const matchSearch = !search || d.title.toLowerCase().includes(search) ||
+      d.category.toLowerCase().includes(search) ||
+      (d.tags || []).some(t => t.toLowerCase().includes(search));
+    const matchDept = !dept || d.department === dept;
+    const matchCat = !cat || d.category === cat;
+    return matchSearch && matchDept && matchCat;
+  });
+  renderDashboards();
+}
+
+function setView(v) {
+  STATE.view = v;
+  document.getElementById('gridViewBtn').className = `btn btn-icon ${v==='grid'?'btn-red':'btn-ghost'}`;
+  document.getElementById('listViewBtn').className = `btn btn-icon ${v==='list'?'btn-red':'btn-ghost'}`;
+  renderDashboards();
+}
+
+// ── Open Dashboard Detail ────────────────────────────────────
+async function openDashboard(id) {
+  navTo('detail');
+  const content = document.getElementById('detailContent');
+  content.innerHTML = `<div class="skeleton" style="height:200px;margin-bottom:16px;"></div>
+    <div class="skeleton" style="height:100px;margin-bottom:16px;"></div>
+    <div class="skeleton" style="height:300px;"></div>`;
+
+  try {
+    const data = await api('GET', `/api/dashboards/${id}`);
+    const d = data.dashboard;
+    STATE.currentDashboard = d;
+    content.innerHTML = renderDetailPage(d);
+    // Setup lazy iframe
+    setupLazyIframe(d.embed_url, d.title, id);
+  } catch (e) {
+    content.innerHTML = `<div style="padding:40px;text-align:center;color:var(--text3);">❌ ${e.message}</div>`;
+  }
+}
+
+function renderDetailPage(d) {
+  const s = d.kpi_summary || {};
+  const isAdmin = STATE.user?.role === 'Admin';
+  return `
+  <div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:20px;">
+    <div>
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
+        <span class="dept-pill dept-${d.department}">${d.department}</span>
+        <span style="font-size:12px;color:var(--text3);">${d.category}</span>
+      </div>
+      <h1 style="font-family:'Bebas Neue';font-size:30px;">${d.title}</h1>
+      <p style="font-size:12px;color:var(--text3);">Created by ${d.created_by} • ${new Date(d.created_at).toLocaleDateString()}</p>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+      <button class="btn btn-ghost btn-sm" onclick="openFullscreen('${d.embed_url}','${d.title.replace(/'/g,'')}')">⛶ Fullscreen</button>
+      <button class="btn btn-ghost btn-sm" onclick="toggleBookmark(${d.id})">${d.is_bookmarked?'🔖 Bookmarked':'🔗 Bookmark'}</button>
+      ${isAdmin ? `<button class="btn btn-red btn-sm" onclick="navTo('analytics');populateAnalyticsSelects();document.getElementById('analyticsDashSelect').value='${d.id}';loadAnalytics();">🧠 Analyze</button>` : ''}
+    </div>
+  </div>
+
+  <!-- Embed -->
+  <div class="card" style="margin-bottom:20px;">
+    <div class="card-header" style="display:flex;align-items:center;justify-content:space-between;">
+      <h3 style="font-size:14px;font-weight:700;">📊 Power BI Dashboard</h3>
+      <span style="font-size:11px;color:var(--text3);" id="iframeStatus">Loading...</span>
+    </div>
+    <div class="card-body" style="padding:12px;">
+      <div class="iframe-wrap" id="iframeWrapper">
+        <div class="iframe-placeholder skeleton" id="iframeSkeleton">
+          <div style="font-size:32px;">📊</div>
+          <div style="font-size:13px;color:var(--text3);">Loading Power BI Report...</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- KPIs -->
+  <div style="margin-bottom:20px;">
+    <h3 style="font-family:'Bebas Neue';font-size:22px;margin-bottom:14px;">KPI Scorecard</h3>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px;">
+      ${(d.kpis || []).map(k => renderKPICard(k)).join('')}
+    </div>
+  </div>
+
+  <!-- Commentary -->
+  ${d.commentary ? `<div class="card" style="margin-bottom:20px;">
+    <div class="card-header"><h3 style="font-size:14px;font-weight:700;">💬 Management Commentary</h3></div>
+    <div class="card-body"><p style="font-size:13.5px;line-height:1.6;color:var(--text2);">${d.commentary}</p></div>
+  </div>` : ''}
+
+  <!-- Tags -->
+  ${d.tags?.length ? `<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:20px;">
+    ${d.tags.map(t => `<span style="background:var(--surface2);border:1px solid var(--border);padding:4px 12px;border-radius:99px;font-size:12px;color:var(--text2);">#${t}</span>`).join('')}
+  </div>` : ''}
+  `;
+}
+
+function setupLazyIframe(url, title, dashId) {
+  const wrapper = document.getElementById('iframeWrapper');
+  const skeleton = document.getElementById('iframeSkeleton');
+  const status = document.getElementById('iframeStatus');
+  if (!wrapper) return;
+
+  const observer = new IntersectionObserver((entries) => {
+    if (entries[0].isIntersecting) {
+      observer.disconnect();
+      const iframe = document.createElement('iframe');
+      iframe.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;border:none;';
+      iframe.src = url;
+      iframe.allow = 'fullscreen';
+      iframe.title = title;
+      iframe.onload = () => {
+        skeleton.style.display = 'none';
+        status.textContent = '✅ Loaded';
+      };
+      iframe.onerror = () => {
+        skeleton.innerHTML = `<div style="font-size:24px;margin-bottom:8px;">⚠️</div>
+          <div style="font-size:13px;color:var(--text3);">Could not load Power BI report.<br>Check embed URL configuration.</div>`;
+        skeleton.classList.remove('skeleton');
+        status.textContent = '❌ Load Error';
+      };
+      wrapper.appendChild(iframe);
+    }
+  }, { threshold: 0.1 });
+  observer.observe(wrapper);
+}
+
+function openFullscreen(url, title) {
+  document.getElementById('fullscreenTitle').textContent = title;
+  document.getElementById('fullscreenIframe').src = url;
+  openModal('fullscreenModal');
+}
+
+// ── KPI Card ─────────────────────────────────────────────────
+function renderKPICard(k) {
+  const health = k.health || {};
+  const trend = k.trend || {};
+  const pct = health.pct || 0;
+  const dotCls = health.status === 'GREEN' ? 'dot-green' : health.status === 'YELLOW' ? 'dot-yellow' : 'dot-red';
+  const badgeCls = health.status === 'GREEN' ? 'badge-green' : health.status === 'YELLOW' ? 'badge-yellow' : 'badge-red';
+  const trendColor = trend.direction === 'UP' ? 'var(--green)' : trend.direction === 'DOWN' ? '#DC2626' : 'var(--text3)';
+
+  return `<div class="card" style="padding:16px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+      <span style="font-size:12px;font-weight:600;color:var(--text2);">${k.name}</span>
+      <span class="dot ${dotCls}"></span>
+    </div>
+    <div style="font-family:'Bebas Neue';font-size:26px;color:var(--text);margin-bottom:2px;">${formatNum(k.value)}</div>
+    <div style="font-size:11px;color:var(--text3);margin-bottom:10px;">Target: ${formatNum(k.target)}</div>
+    <div class="kpi-bar" style="margin-bottom:8px;">
+      <div class="kpi-bar-fill" style="width:${Math.min(100,pct)}%;background:${health.color||'var(--red)'};"></div>
+    </div>
+    <div style="display:flex;align-items:center;justify-content:space-between;">
+      <span class="badge ${badgeCls}">${health.label || '—'} ${pct}%</span>
+      <span style="font-size:12px;color:${trendColor};font-weight:600;">${trend.icon||'→'} ${trend.change_pct !== undefined ? trend.change_pct + '%' : ''}</span>
+    </div>
+  </div>`;
+}
+
+// ── Portfolio Stats ───────────────────────────────────────────
+async function loadPortfolioStats() {
+  try {
+    const data = await api('GET', '/api/analytics/portfolio');
+    document.getElementById('statDashboards').textContent = data.total_dashboards;
+    document.getElementById('statGreen').textContent = data.green;
+    document.getElementById('statYellow').textContent = data.yellow;
+    document.getElementById('statRed').textContent = data.red;
+
+    const score = data.portfolio_score;
+    document.getElementById('healthScore').textContent = score + '%';
+    document.getElementById('healthLabel').textContent = score >= 80 ? 'HEALTHY' : score >= 60 ? 'MODERATE' : 'AT RISK';
+    const circumference = 314;
+    const offset = circumference - (score / 100) * circumference;
+    const circle = document.getElementById('healthCircle');
+    if (circle) {
+      circle.style.strokeDashoffset = offset;
+      circle.style.stroke = score >= 80 ? 'var(--green)' : score >= 60 ? 'var(--yellow)' : 'var(--red)';
+    }
+    document.getElementById('healthBreakdown').innerHTML =
+      `<span style="color:var(--green);">✅ ${data.green}</span> &nbsp; <span style="color:var(--yellow);">⚠️ ${data.yellow}</span> &nbsp; <span style="color:#DC2626;">🔴 ${data.red}</span>`;
+
+    // Department performance bars
+    const deptEl = document.getElementById('deptPerf');
+    const depts = data.by_department || {};
+    deptEl.innerHTML = Object.entries(depts).map(([dept, info]) => {
+      const pct = info.kpis > 0 ? Math.round((info.green / info.kpis) * 100) : 0;
+      return `<div style="margin-bottom:14px;">
+        <div style="display:flex;justify-content:space-between;font-size:12px;font-weight:600;margin-bottom:5px;">
+          <span><span class="dept-pill dept-${dept}">${dept}</span></span>
+          <span style="color:var(--text3);">${info.green}/${info.kpis} KPIs on target (${pct}%)</span>
+        </div>
+        <div class="kpi-bar" style="height:8px;">
+          <div class="kpi-bar-fill" style="width:${pct}%;background:${pct>=80?'var(--green)':pct>=60?'var(--yellow)':'var(--red)'};"></div>
+        </div>
+      </div>`;
+    }).join('');
+
+    const now = new Date().toLocaleTimeString();
+    document.getElementById('lastUpdated').textContent = `Last updated: ${now}`;
+  } catch (e) {
+    console.error('Portfolio stats error:', e);
+  }
+}
+
+function updateRecentDashboards() {
+  const el = document.getElementById('recentDashboards');
+  const recent = STATE.dashboards.slice(0, 4);
+  if (!recent.length) { el.innerHTML = '<div style="color:var(--text3);font-size:13px;">No dashboards yet</div>'; return; }
+  el.innerHTML = `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;">
+    ${recent.map(d => {
+      const s = d.kpi_summary || {};
+      const pct = s.score || 0;
+      return `<div style="border:1px solid var(--border);border-radius:10px;padding:14px;cursor:pointer;transition:all .15s;"
+        onmouseover="this.style.borderColor='var(--red)'" onmouseout="this.style.borderColor='var(--border)'"
+        onclick="openDashboard(${d.id})">
+        <div style="font-weight:600;font-size:13px;margin-bottom:4px;">${d.title}</div>
+        <div style="font-size:11px;color:var(--text3);margin-bottom:8px;">${d.department}</div>
+        <div class="kpi-bar"><div class="kpi-bar-fill" style="width:${pct}%;background:${pct>=80?'var(--green)':pct>=60?'var(--yellow)':'var(--red)'};"></div></div>
+      </div>`;
+    }).join('')}
+  </div>`;
+}
+
+// ── Bookmarks ────────────────────────────────────────────────
+async function toggleBookmark(id) {
+  try {
+    const data = await api('POST', `/api/dashboards/${id}/bookmark`);
+    const d = STATE.dashboards.find(x => x.id === id);
+    if (d) d.is_bookmarked = data.bookmarked;
+    if (STATE.user) STATE.user.bookmarks = data.bookmarks;
+    localStorage.setItem('slmg_user', JSON.stringify(STATE.user));
+    renderDashboards();
+    toast(data.message, 'success');
+  } catch (e) {
+    toast('Bookmark failed: ' + e.message, 'error');
+  }
+}
+
+async function loadBookmarks() {
+  const grid = document.getElementById('bookmarkGrid');
+  const empty = document.getElementById('bookmarkEmpty');
+  const bookmarked = STATE.dashboards.filter(d => d.is_bookmarked);
+  if (!bookmarked.length) {
+    grid.innerHTML = ''; empty.style.display = 'block'; return;
+  }
+  empty.style.display = 'none';
+  grid.innerHTML = bookmarked.map(d => renderDashCard(d)).join('');
+}
+
+// ── Analytics ────────────────────────────────────────────────
+function populateAnalyticsSelects() {
+  const sel = document.getElementById('analyticsDashSelect');
+  sel.innerHTML = '<option value="">— Select a Dashboard —</option>' +
+    STATE.dashboards.map(d => `<option value="${d.id}">${d.title} (${d.department})</option>`).join('');
+}
+
+async function loadAnalytics() {
+  const id = document.getElementById('analyticsDashSelect').value;
+  if (!id) { document.getElementById('analyticsContent').style.display = 'none'; return; }
+  STATE.analyticsId = id;
+  document.getElementById('analyticsContent').style.display = 'block';
+
+  try {
+    // Load KPIs
+    const kpiData = await api('GET', `/api/analytics/kpis/${id}`);
+    renderAnalyticsKPIs(kpiData.enriched_kpis || []);
+    // Load SWOT
+    const swotData = await api('GET', `/api/analytics/swot/${id}`);
+    renderSWOT(swotData.swot);
+    // Load Notes
+    loadNotes(id);
+    // Reset AI
+    document.getElementById('aiContainer').innerHTML = `<div style="padding:32px;text-align:center;color:var(--text3);border:1px dashed var(--border);border-radius:12px;">
+      <div style="font-size:32px;margin-bottom:8px;">🤖</div>
+      <div style="font-size:13px;">Click "Generate" to get AI-powered insights based on real KPI data</div>
+    </div>`;
+    STATE.aiSummary = null;
+  } catch (e) {
+    toast('Analytics error: ' + e.message, 'error');
+  }
+}
+
+function renderAnalyticsKPIs(kpis) {
+  document.getElementById('kpiGrid').innerHTML = kpis.map(k => renderKPICard(k)).join('');
+}
+
+function renderSWOT(swot) {
+  if (!swot) return;
+  const container = document.getElementById('swotContainer');
+  container.innerHTML = `<div class="swot-grid">
+    <div class="swot-cell swot-S">
+      <h4>💪 Strengths</h4>
+      <ul>${swot.strengths.map(s=>`<li>${s}</li>`).join('')}</ul>
+    </div>
+    <div class="swot-cell swot-W">
+      <h4>⚠️ Weaknesses</h4>
+      <ul>${swot.weaknesses.map(s=>`<li>${s}</li>`).join('')}</ul>
+    </div>
+    <div class="swot-cell swot-O">
+      <h4>🚀 Opportunities</h4>
+      <ul>${swot.opportunities.map(s=>`<li>${s}</li>`).join('')}</ul>
+    </div>
+    <div class="swot-cell swot-T">
+      <h4>🔥 Threats</h4>
+      <ul>${swot.threats.map(s=>`<li>${s}</li>`).join('')}</ul>
+    </div>
+  </div>
+  <div style="margin-top:10px;padding:10px 14px;background:var(--surface2);border-radius:8px;font-size:12px;color:var(--text2);">
+    ${swot.summary}
+  </div>`;
+}
+
+async function loadAISummary() {
+  if (!STATE.analyticsId) return;
+  setBtnLoading('aiBtnText', 'aiSpinner', true);
+  try {
+    const data = await api('POST', `/api/analytics/ai-summary/${STATE.analyticsId}`);
+    STATE.aiSummary = data.summary;
+    renderAISummary(data.summary);
+  } catch (e) {
+    toast('AI summary failed: ' + e.message, 'error');
+  } finally {
+    setBtnLoading('aiBtnText', 'aiSpinner', false, '✨ Generate');
+  }
+}
+
+function renderAISummary(s) {
+  const ratingCls = `rating-${s.overall_rating}`;
+  document.getElementById('aiContainer').innerHTML = `
+  <div class="insight-card">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px;">
+      <h4 style="font-family:'Bebas Neue';font-size:18px;color:white;">Executive Brief</h4>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span class="rating-badge ${ratingCls}">${s.overall_rating}</span>
+        <span style="font-size:10px;color:#6B7280;">${s.source}</span>
+      </div>
+    </div>
+    <div style="margin-bottom:14px;">
+      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:#9CA3AF;margin-bottom:6px;">Executive Summary</div>
+      <p style="font-size:13px;color:#E5E7EB;line-height:1.6;">${s.executive_summary}</p>
+    </div>
+    <div style="margin-bottom:14px;padding:12px;background:rgba(220,38,38,.1);border:1px solid rgba(220,38,38,.2);border-radius:8px;">
+      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:#FCA5A5;margin-bottom:6px;">⚠️ Risk Analysis</div>
+      <p style="font-size:13px;color:#E5E7EB;line-height:1.6;">${s.risk_analysis}</p>
+    </div>
+    <div style="margin-bottom:14px;padding:12px;background:rgba(22,163,74,.1);border:1px solid rgba(22,163,74,.2);border-radius:8px;">
+      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:#86EFAC;margin-bottom:6px;">✅ Strategic Recommendation</div>
+      <p style="font-size:13px;color:#E5E7EB;line-height:1.6;">${s.strategic_recommendation}</p>
+    </div>
+    <div style="padding:10px 14px;background:rgba(255,255,255,.05);border-radius:8px;border:1px solid rgba(255,255,255,.1);">
+      <span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:#9CA3AF;">🎯 Priority Action: </span>
+      <span style="font-size:13px;color:white;">${s.priority_action}</span>
+    </div>
+  </div>`;
+}
+
+function readAloud() {
+  if (!STATE.aiSummary) { toast('Generate AI summary first', 'warning'); return; }
+  const s = STATE.aiSummary;
+  const text = `Executive Summary: ${s.executive_summary}. Risk Analysis: ${s.risk_analysis}. Recommendation: ${s.strategic_recommendation}. Priority Action: ${s.priority_action}`;
+  const utt = new SpeechSynthesisUtterance(text);
+  utt.rate = 0.9; utt.pitch = 1;
+  window.speechSynthesis.cancel();
+  window.speechSynthesis.speak(utt);
+  toast('🔊 Reading summary aloud...', 'success');
+}
+
+// ── Notes ────────────────────────────────────────────────────
+async function loadNotes(dashId) {
+  try {
+    const data = await api('GET', `/api/dashboards/${dashId}/notes`);
+    const el = document.getElementById('notesList');
+    if (!data.notes.length) {
+      el.innerHTML = '<div style="text-align:center;padding:20px;color:var(--text3);font-size:13px;">No notes yet</div>';
+      return;
+    }
+    el.innerHTML = data.notes.map(n => `<div style="padding:12px;border:1px solid var(--border);border-radius:8px;margin-bottom:8px;">
+      <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
+        <span style="font-weight:600;font-size:12px;">${n.author_name}</span>
+        <span style="font-size:11px;color:var(--text3);">${new Date(n.created_at).toLocaleString()}</span>
+      </div>
+      <p style="font-size:13px;color:var(--text2);">${n.content}</p>
+    </div>`).join('');
+  } catch (e) {}
+}
+
+async function addNote() {
+  const content = document.getElementById('noteInput').value.trim();
+  if (!content || !STATE.analyticsId) return;
+  try {
+    await api('POST', `/api/dashboards/${STATE.analyticsId}/notes`, { content });
+    document.getElementById('noteInput').value = '';
+    loadNotes(STATE.analyticsId);
+    toast('Note added', 'success');
+  } catch (e) {
+    toast('Failed to add note: ' + e.message, 'error');
+  }
+}
+
+// ── Compare ──────────────────────────────────────────────────
+function populateCompareSelects() {
+  ['compareSelect1', 'compareSelect2'].forEach(id => {
+    const sel = document.getElementById(id);
+    sel.innerHTML = `<option value="">— ${id.includes('1')?'Dashboard A':'Dashboard B'} —</option>` +
+      STATE.dashboards.map(d => `<option value="${d.id}">${d.title}</option>`).join('');
+  });
+}
+
+async function doCompare() {
+  const id1 = document.getElementById('compareSelect1').value;
+  const id2 = document.getElementById('compareSelect2').value;
+  if (!id1 || !id2) { toast('Select both dashboards', 'warning'); return; }
+  if (id1 === id2) { toast('Select two different dashboards', 'warning'); return; }
+
+  const result = document.getElementById('compareResult');
+  result.innerHTML = `<div class="compare-grid">${[1,2].map(() => `<div class="skeleton" style="height:400px;border-radius:12px;"></div>`).join('')}</div>`;
+
+  try {
+    const data = await api('POST', '/api/analytics/compare', { dashboard_ids: [+id1, +id2] });
+    result.innerHTML = `<div class="compare-grid">${data.comparison.map(d => `
+      <div class="card">
+        <div class="top-stripe dash-card ${d.department}" style="height:4px;"></div>
+        <div class="card-header">
+          <span class="dept-pill dept-${d.department}">${d.department}</span>
+          <h3 style="margin-top:6px;font-size:16px;font-weight:700;">${d.title}</h3>
+          <div style="font-size:12px;color:var(--text3);">${d.category}</div>
+        </div>
+        <div class="card-body">
+          <div style="display:flex;flex-direction:column;gap:10px;">
+            ${(d.kpis||[]).map(k => renderKPICard(k)).join('')}
+          </div>
+        </div>
+      </div>`).join('')}
+    </div>`;
+  } catch (e) {
+    result.innerHTML = `<div style="padding:30px;text-align:center;color:#DC2626;">❌ ${e.message}</div>`;
+  }
+}
+
+// ── Add Dashboard ────────────────────────────────────────────
+function openAddDashModal() {
+  if (STATE.user?.role === 'Admin') {
+    document.getElementById('newDashDept').innerHTML = `
+      <option value="Finance">Finance</option>
+      <option value="Sales">Sales</option>
+      <option value="HR">HR</option>
+      <option value="Operations">Operations</option>`;
+  } else {
+    document.getElementById('newDashDept').innerHTML = `<option value="${STATE.user.department}">${STATE.user.department}</option>`;
+  }
+  document.getElementById('kpiRows').innerHTML = '';
+  addKPIRow(); // default one row
+  openModal('addDashModal');
+}
+
+function addKPIRow() {
+  const container = document.getElementById('kpiRows');
+  const idx = container.children.length;
+  const row = document.createElement('div');
+  row.style.cssText = 'display:grid;grid-template-columns:2fr 1fr 1fr 1fr auto;gap:8px;align-items:center;';
+  row.innerHTML = `
+    <input type="text" class="form-input" placeholder="KPI Name" style="padding:7px 10px;font-size:12px;" data-kpi="name">
+    <input type="number" class="form-input" placeholder="Value" style="padding:7px 10px;font-size:12px;" data-kpi="value">
+    <input type="number" class="form-input" placeholder="Target" style="padding:7px 10px;font-size:12px;" data-kpi="target">
+    <input type="number" class="form-input" placeholder="Previous" style="padding:7px 10px;font-size:12px;" data-kpi="previous">
+    <button class="btn btn-ghost btn-sm" style="padding:6px 10px;color:#DC2626;" onclick="this.parentElement.remove()">✕</button>`;
+  container.appendChild(row);
+}
+
+async function saveDashboard() {
+  const title = document.getElementById('newDashTitle').value.trim();
+  const url = document.getElementById('newDashUrl').value.trim();
+  const dept = document.getElementById('newDashDept').value;
+  const cat = document.getElementById('newDashCat').value;
+  const tags = document.getElementById('newDashTags').value.split(',').map(t=>t.trim()).filter(Boolean);
+  const commentary = document.getElementById('newDashCommentary').value.trim();
+
+  if (!title || !url || !dept || !cat) { toast('Fill all required fields', 'warning'); return; }
+
+  // Collect KPIs
+  const kpis = [];
+  document.querySelectorAll('#kpiRows > div').forEach(row => {
+    const name = row.querySelector('[data-kpi="name"]')?.value.trim();
+    const value = parseFloat(row.querySelector('[data-kpi="value"]')?.value);
+    const target = parseFloat(row.querySelector('[data-kpi="target"]')?.value);
+    const previous = parseFloat(row.querySelector('[data-kpi="previous"]')?.value);
+    if (name && !isNaN(value) && !isNaN(target)) {
+      kpis.push({ name, value, target, previousValue: isNaN(previous) ? value : previous });
+    }
+  });
+
+  setBtnLoading('saveDashText', 'saveDashSpinner', true);
+  try {
+    await api('POST', '/api/dashboards/', { title, embed_url: url, department: dept, category: cat, tags, kpis, commentary });
+    closeModal('addDashModal');
+    await loadDashboards();
+    await loadPortfolioStats();
+    toast('Dashboard created!', 'success');
+  } catch (e) {
+    toast('Failed: ' + e.message, 'error');
+  } finally {
+    setBtnLoading('saveDashText', 'saveDashSpinner', false, 'Create Dashboard');
+  }
+}
+
+// ── User Management ──────────────────────────────────────────
+async function loadUsers() {
+  try {
+    const data = await api('GET', '/api/users/');
+    const tbody = document.getElementById('usersTableBody');
+    tbody.innerHTML = data.users.map(u => `<tr>
+      <td><div style="font-weight:600;">${u.name}</div></td>
+      <td style="color:var(--text2);font-size:13px;">${u.email}</td>
+      <td><span class="badge ${u.role==='Admin'?'badge-red':u.role==='Analyst'?'badge-yellow':'badge-green'}">${u.role}</span></td>
+      <td><span class="dept-pill dept-${u.department}">${u.department}</span></td>
+      <td><span class="badge ${u.is_active?'badge-green':'badge-red'}">${u.is_active?'Active':'Inactive'}</span></td>
+      <td style="font-size:12px;color:var(--text3);">${new Date(u.created_at).toLocaleDateString()}</td>
+      <td>
+        <div style="display:flex;gap:6px;">
+          <button class="btn btn-ghost btn-sm" onclick="editUser(${JSON.stringify(u).replace(/"/g,'&quot;')})">✏️</button>
+          <button class="btn btn-ghost btn-sm" style="color:#DC2626;" onclick="deleteUser(${u.id},'${u.name}')">🗑️</button>
+        </div>
+      </td>
+    </tr>`).join('');
+  } catch (e) {
+    toast('Failed to load users: ' + e.message, 'error');
+  }
+}
+
+function openAddUserModal() {
+  STATE.editingUserId = null;
+  document.getElementById('userModalTitle').textContent = 'Add New User';
+  document.getElementById('saveUserText').textContent = 'Create User';
+  document.getElementById('newUserName').value = '';
+  document.getElementById('newUserEmail').value = '';
+  document.getElementById('newUserPass').value = '';
+  document.getElementById('newUserRole').value = 'Viewer';
+  document.getElementById('newUserDept').value = 'Finance';
+  document.getElementById('editUserId').value = '';
+  openModal('addUserModal');
+}
+
+function editUser(u) {
+  STATE.editingUserId = u.id;
+  document.getElementById('userModalTitle').textContent = 'Edit User';
+  document.getElementById('saveUserText').textContent = 'Save Changes';
+  document.getElementById('newUserName').value = u.name;
+  document.getElementById('newUserEmail').value = u.email;
+  document.getElementById('newUserPass').value = '';
+  document.getElementById('newUserRole').value = u.role;
+  document.getElementById('newUserDept').value = u.department;
+  document.getElementById('editUserId').value = u.id;
+  openModal('addUserModal');
+}
+
+async function saveUser() {
+  const name = document.getElementById('newUserName').value.trim();
+  const email = document.getElementById('newUserEmail').value.trim();
+  const pass = document.getElementById('newUserPass').value;
+  const role = document.getElementById('newUserRole').value;
+  const dept = document.getElementById('newUserDept').value;
+
+  if (!name || !email) { toast('Name and email are required', 'warning'); return; }
+
+  setBtnLoading('saveUserText', 'saveUserSpinner', true);
+  try {
+    if (STATE.editingUserId) {
+      const body = { name, role, department: dept };
+      if (pass) body.password = pass;
+      await api('PUT', `/api/users/${STATE.editingUserId}`, body);
+      toast('User updated!', 'success');
+    } else {
+      if (!pass) { toast('Password is required for new user', 'warning'); return; }
+      await api('POST', '/api/users/', { name, email, password: pass, role, department: dept });
+      toast('User created!', 'success');
+    }
+    closeModal('addUserModal');
+    loadUsers();
+  } catch (e) {
+    toast('Failed: ' + e.message, 'error');
+  } finally {
+    setBtnLoading('saveUserText', 'saveUserSpinner', false, STATE.editingUserId ? 'Save Changes' : 'Create User');
+  }
+}
+
+async function deleteUser(id, name) {
+  if (!confirm(`Delete user "${name}"? This action cannot be undone.`)) return;
+  try {
+    await api('DELETE', `/api/users/${id}`);
+    toast(`User "${name}" deleted`, 'success');
+    loadUsers();
+  } catch (e) {
+    toast('Delete failed: ' + e.message, 'error');
+  }
+}
+
+// ── Activity Log ──────────────────────────────────────────────
+async function loadActivity() {
+  try {
+    const data = await api('GET', '/api/users/activity-log?per_page=100');
+    const tbody = document.getElementById('activityTableBody');
+    tbody.innerHTML = data.logs.map(l => `<tr>
+      <td style="font-size:12px;color:var(--text3);">${new Date(l.created_at).toLocaleString()}</td>
+      <td><div style="font-weight:600;font-size:13px;">${l.actor_name}</div><div style="font-size:11px;color:var(--text3);">${l.actor_email}</div></td>
+      <td style="font-size:13px;">${l.action}</td>
+      <td><span class="badge badge-yellow">${l.entity_type||'—'}</span></td>
+    </tr>`).join('');
+  } catch (e) {
+    toast('Activity log error: ' + e.message, 'error');
+  }
+}
+
+// ── Profile ──────────────────────────────────────────────────
+async function saveProfile() {
+  const name = document.getElementById('profileName').value.trim();
+  const currentPass = document.getElementById('profileCurrentPass').value;
+  const newPass = document.getElementById('profileNewPass').value;
+
+  const body = {};
+  if (name && name !== STATE.user.name) body.name = name;
+  if (newPass) {
+    body.current_password = currentPass;
+    body.new_password = newPass;
+  }
+  if (!Object.keys(body).length) { toast('No changes to save', 'warning'); return; }
+
+  try {
+    const data = await api('PUT', '/api/auth/profile', body);
+    STATE.user = data.user;
+    localStorage.setItem('slmg_user', JSON.stringify(data.user));
+    updateUserUI();
+    document.getElementById('profileCurrentPass').value = '';
+    document.getElementById('profileNewPass').value = '';
+    toast('Profile updated!', 'success');
+  } catch (e) {
+    toast('Update failed: ' + e.message, 'error');
+  }
+}
+
+// ── Auto Refresh ──────────────────────────────────────────────
+function toggleAutoRefresh() {
+  const on = document.getElementById('autoRefreshToggle').checked;
+  const slider = document.getElementById('autoRefreshSlider');
+  const thumb = document.getElementById('autoRefreshThumb');
+  slider.style.background = on ? 'var(--red)' : '#374151';
+  thumb.style.left = on ? '18px' : '2px';
+  if (on) {
+    STATE.autoRefreshInterval = setInterval(() => {
+      loadDashboards();
+      loadPortfolioStats();
+    }, 30000);
+    toast('Auto refresh enabled (30s)', 'success');
+  } else {
+    clearInterval(STATE.autoRefreshInterval);
+    toast('Auto refresh disabled', 'warning');
+  }
+}
+
+function toggleDark() {
+  const on = document.getElementById('darkToggle').checked;
+  document.getElementById('htmlRoot').className = on ? 'dark' : 'light';
+  document.getElementById('darkSlider').style.background = on ? 'var(--red)' : '#374151';
+  document.getElementById('darkThumb').style.left = on ? '18px' : '2px';
+}
+
+// ── Modal Helpers ────────────────────────────────────────────
+function openModal(id) {
+  document.getElementById(id).classList.add('show');
+  document.body.style.overflow = 'hidden';
+}
+function closeModal(id) {
+  document.getElementById(id).classList.remove('show');
+  document.body.style.overflow = '';
+  if (id === 'fullscreenModal') document.getElementById('fullscreenIframe').src = '';
+}
+// Close on overlay click
+document.querySelectorAll('.modal-overlay').forEach(o => {
+  o.addEventListener('click', e => { if (e.target === o) closeModal(o.id); });
+});
+
+// ── Toast ────────────────────────────────────────────────────
+function toast(msg, type = 'info') {
+  const icons = { success: '✅', error: '❌', warning: '⚠️', info: 'ℹ️' };
+  const t = document.createElement('div');
+  t.className = `toast ${type}`;
+  t.innerHTML = `<span>${icons[type]||'ℹ️'}</span><span>${msg}</span>`;
+  document.getElementById('toastContainer').appendChild(t);
+  requestAnimationFrame(() => { requestAnimationFrame(() => t.classList.add('show')); });
+  setTimeout(() => {
+    t.classList.remove('show');
+    setTimeout(() => t.remove(), 300);
+  }, 3500);
+}
+
+// ── Utils ────────────────────────────────────────────────────
+function formatNum(v) {
+  const n = parseFloat(v);
+  if (isNaN(n)) return v;
+  if (n >= 1000000) return (n/1000000).toFixed(1) + 'M';
+  if (n >= 1000) return (n/1000).toFixed(1) + 'K';
+  if (n === Math.floor(n)) return n.toString();
+  return n.toFixed(1);
+}
+
+function setBtnLoading(textId, spinnerId, loading, resetText = '') {
+  document.getElementById(textId).style.display = loading ? 'none' : '';
+  document.getElementById(spinnerId).style.display = loading ? 'inline-block' : 'none';
+  if (!loading && resetText) document.getElementById(textId).textContent = resetText;
+}
+
+// ── Init ────────────────────────────────────────────────────
+if (STATE.token && STATE.user) {
+  bootApp();
+} else {
+  document.getElementById('loginPage').style.display = 'flex';
+  document.getElementById('mainApp').style.display = 'none';
+}
+</script>
+</body>
+</html>
