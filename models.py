@@ -142,14 +142,14 @@ class ActivityLog(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     @property
-    def metadata(self):
+    def log_metadata(self):
         try:
             return json.loads(self.metadata_raw or '{}')
         except Exception:
             return {}
 
-    @metadata.setter
-    def metadata(self, value):
+    @log_metadata.setter
+    def log_metadata(self, value):
         self.metadata_raw = json.dumps(value)
 
     def to_dict(self):
