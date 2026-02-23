@@ -124,7 +124,16 @@ def create_dashboard():
         return jsonify({'error': 'No data provided'}), 400
 
     required = ['title', 'embed_url', 'department', 'category']
-    missing = [f for f in required if not data.get(f, '').strip() if isinstance(data.get(f), str) else not data.get(f)]
+   missing = []
+
+for f in required:
+    value = data.get(f)
+    if isinstance(value, str):
+        if not value.strip():
+            missing.append(f)
+    elif not value:
+        missing.append(f)
+
     if missing:
         return jsonify({'error': f'Missing required fields: {", ".join(missing)}'}), 400
 
