@@ -1,15 +1,12 @@
 """
-Auth Routes — Login, Register, Profile
+Auth Routes — Login, Logout, Profile
 """
 
-from flask import Blueprint, request, jsonify, make_response
-from flask_jwt_extended import (
-    create_access_token, get_jwt_identity,
-    unset_jwt_cookies, verify_jwt_in_request
-)
+from flask import Blueprint, request, jsonify
+from flask_jwt_extended import create_access_token, get_jwt_identity
 from datetime import datetime
 from app import db, bcrypt
-from models import User, ActivityLog
+from models import User
 from middleware.auth_middleware import jwt_required_custom, get_current_user, log_activity
 
 auth_bp = Blueprint('auth', __name__)
@@ -17,7 +14,7 @@ auth_bp = Blueprint('auth', __name__)
 
 @auth_bp.route('/login', methods=['POST'])
 def login():
-    """Authenticate user and return JWT."""
+    """Authenticate user and return JWT token."""
     data = request.get_json()
     if not data:
         return jsonify({'error': 'No data provided'}), 400
@@ -35,36 +32,25 @@ def login():
     if not user.is_active:
         return jsonify({'error': 'Account is deactivated. Contact admin.'}), 403
 
-    # Update last login
+    # Update last login timestamp
     user.last_login = datetime.utcnow()
     db.session.commit()
 
-    token = create_access_token(identity=user.id)
-    log_activity(user.id, f"Login successful", 'auth')
+    # IMPORTANT: identity must be a STRING for Flask-JWT-Extended >= 4.x
+    token = create_access_token(identity=str(user.id))
+    log_activity(user.id, "Login successful", 'auth')
 
-    response = make_response(jsonify({
+    return jsonify({
         'message': 'Login successful',
         'token': token,
         'user': user.to_dict()
-    }))
-    # Set HTTP-only cookie for security
-    response.set_cookie(
-        'access_token_cookie', token,
-        httponly=True,
-        secure=False,  # Set True in production with HTTPS
-        samesite='Lax',
-        max_age=28800  # 8 hours
-    )
-    return response, 200
+    }), 200
 
 
 @auth_bp.route('/logout', methods=['POST'])
 def logout():
-    """Clear JWT cookie."""
-    response = make_response(jsonify({'message': 'Logged out successfully'}))
-    unset_jwt_cookies(response)
-    response.delete_cookie('access_token_cookie')
-    return response, 200
+    """Logout — JWT is stateless, client removes token."""
+    return jsonify({'message': 'Logged out successfully'}), 200
 
 
 @auth_bp.route('/me', methods=['GET'])
@@ -80,7 +66,7 @@ def get_me():
 @auth_bp.route('/profile', methods=['PUT'])
 @jwt_required_custom
 def update_profile():
-    """Update current user's name/password."""
+    """Update current user name and/or password."""
     user = get_current_user()
     if not user:
         return jsonify({'error': 'User not found'}), 404
@@ -100,7 +86,7 @@ def update_profile():
     if 'new_password' in data:
         current_password = data.get('current_password', '')
         if not current_password:
-            return jsonify({'error': 'Current password is required to set new password'}), 400
+            return jsonify({'error': 'Current password is required to change password'}), 400
         if not bcrypt.check_password_hash(user.password, current_password):
             return jsonify({'error': 'Current password is incorrect'}), 400
         new_pass = data['new_password']

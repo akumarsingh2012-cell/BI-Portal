@@ -1,5 +1,5 @@
 """
-Auth & Department Middleware — SLMG BI Portal
+Auth & Department Access Middleware — SLMG BI Portal
 """
 
 from functools import wraps
@@ -7,16 +7,17 @@ from flask import jsonify, request
 from flask_jwt_extended import verify_jwt_in_request, get_jwt_identity
 from models import User, ActivityLog
 from app import db
+import json
 
 
 def jwt_required_custom(f):
-    """Require valid JWT token."""
+    """Require valid JWT Bearer token in Authorization header."""
     @wraps(f)
     def decorated(*args, **kwargs):
         try:
-            verify_jwt_in_request()
+            verify_jwt_in_request(locations=['headers'])
         except Exception as e:
-            return jsonify({'error': 'Authentication required', 'message': str(e)}), 401
+            return jsonify({'error': 'Authentication required', 'detail': str(e)}), 401
         return f(*args, **kwargs)
     return decorated
 
@@ -26,12 +27,12 @@ def admin_required(f):
     @wraps(f)
     def decorated(*args, **kwargs):
         try:
-            verify_jwt_in_request()
+            verify_jwt_in_request(locations=['headers'])
         except Exception as e:
-            return jsonify({'error': 'Authentication required'}), 401
-        
+            return jsonify({'error': 'Authentication required', 'detail': str(e)}), 401
+
         identity = get_jwt_identity()
-        user = User.query.get(identity)
+        user = User.query.get(int(identity))
         if not user or user.role != 'Admin':
             return jsonify({'error': 'Admin access required'}), 403
         return f(*args, **kwargs)
@@ -43,12 +44,12 @@ def analyst_or_admin_required(f):
     @wraps(f)
     def decorated(*args, **kwargs):
         try:
-            verify_jwt_in_request()
+            verify_jwt_in_request(locations=['headers'])
         except Exception as e:
-            return jsonify({'error': 'Authentication required'}), 401
-        
+            return jsonify({'error': 'Authentication required', 'detail': str(e)}), 401
+
         identity = get_jwt_identity()
-        user = User.query.get(identity)
+        user = User.query.get(int(identity))
         if not user or user.role not in ('Admin', 'Analyst'):
             return jsonify({'error': 'Analyst or Admin access required'}), 403
         return f(*args, **kwargs)
@@ -56,31 +57,30 @@ def analyst_or_admin_required(f):
 
 
 def get_current_user():
-    """Helper to get current user from JWT."""
+    """Get current authenticated user from JWT identity."""
     try:
-        verify_jwt_in_request()
+        verify_jwt_in_request(locations=['headers'])
         identity = get_jwt_identity()
-        return User.query.get(identity)
+        # identity is stored as string, must cast to int for DB lookup
+        return User.query.get(int(identity))
     except Exception:
         return None
 
 
 def department_filter(query, user, model):
     """
-    CORE SECURITY RULE:
-    - Admin sees all dashboards
-    - Other roles see ONLY their department's dashboards
-    Enforced server-side, never solely on frontend.
+    CORE SECURITY — Enforced server-side, never only on frontend.
+    Admin sees ALL dashboards.
+    All other roles see ONLY their own department's dashboards.
     """
     if user.role == 'Admin':
-        return query  # Admin sees everything
+        return query
     return query.filter(model.department == user.department)
 
 
 def log_activity(user_id, action, entity_type=None, entity_id=None, metadata=None):
-    """Log user activity to DB."""
+    """Write an activity log entry."""
     try:
-        import json
         log = ActivityLog(
             user_id=user_id,
             action=action,
@@ -92,4 +92,5 @@ def log_activity(user_id, action, entity_type=None, entity_id=None, metadata=Non
         db.session.add(log)
         db.session.commit()
     except Exception as e:
+        db.session.rollback()
         print(f'Activity log error: {e}')

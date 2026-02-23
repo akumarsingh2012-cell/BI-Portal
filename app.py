@@ -1,15 +1,16 @@
 """
 SLMG Beverages — Enterprise BI Portal
-Flask Backend Application
+Flask Application Factory
 """
 
-from flask import Flask, send_from_directory
+from flask import Flask, send_from_directory, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from flask_jwt_extended import JWTManager
 from flask_cors import CORS
 from flask_bcrypt import Bcrypt
 from config import Config
 import os
+import pathlib
 
 db = SQLAlchemy()
 jwt = JWTManager()
@@ -20,13 +21,33 @@ def create_app():
     app = Flask(__name__, template_folder='templates', static_folder='static')
     app.config.from_object(Config)
 
-    # Extensions
+    # Ensure static folder exists — Flask crashes without it
+    pathlib.Path(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static')).mkdir(exist_ok=True)
+
+    # ── Extensions ──────────────────────────────────────────
     db.init_app(app)
     jwt.init_app(app)
     bcrypt.init_app(app)
-    CORS(app, supports_credentials=True, origins=app.config.get('CORS_ORIGINS', '*'))
+    CORS(app,
+         resources={r"/api/*": {"origins": "*"}},
+         supports_credentials=True,
+         allow_headers=["Content-Type", "Authorization"],
+         methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"])
 
-    # Register blueprints
+    # ── JWT error handlers ───────────────────────────────────
+    @jwt.unauthorized_loader
+    def unauthorized_callback(reason):
+        return jsonify({'error': 'Authentication required', 'reason': reason}), 401
+
+    @jwt.expired_token_loader
+    def expired_callback(jwt_header, jwt_data):
+        return jsonify({'error': 'Session expired. Please log in again.'}), 401
+
+    @jwt.invalid_token_loader
+    def invalid_callback(reason):
+        return jsonify({'error': 'Invalid token', 'reason': reason}), 401
+
+    # ── Blueprints ───────────────────────────────────────────
     from routes.auth import auth_bp
     from routes.dashboards import dash_bp
     from routes.users import users_bp
@@ -37,15 +58,18 @@ def create_app():
     app.register_blueprint(users_bp, url_prefix='/api/users')
     app.register_blueprint(analytics_bp, url_prefix='/api/analytics')
 
-    # Serve frontend SPA
-    @app.route('/')
-    @app.route('/<path:path>')
-    def serve_frontend(path=''):
-        if path and os.path.exists(os.path.join(app.static_folder, path)):
-            return send_from_directory(app.static_folder, path)
-        return send_from_directory(app.template_folder, 'index.html')
+    # ── SPA Frontend ─────────────────────────────────────────
+    template_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'templates')
+    static_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static')
 
-    # Create DB tables + seed admin
+    @app.route('/', defaults={'path': ''})
+    @app.route('/<path:path>')
+    def serve_frontend(path):
+        if path and os.path.exists(os.path.join(static_dir, path)):
+            return send_from_directory(static_dir, path)
+        return send_from_directory(template_dir, 'index.html')
+
+    # ── DB Init + Seed ───────────────────────────────────────
     with app.app_context():
         db.create_all()
         _seed_data()
@@ -54,104 +78,81 @@ def create_app():
 
 
 def _seed_data():
-    """Seed default admin user and sample dashboards if empty."""
+    """Seed admin + sample users + sample dashboards on first run."""
     from models import User, Dashboard
-    
-    if not User.query.filter_by(email='admin@slmg.com').first():
-        from app import bcrypt as bc
-        admin = User(
-            name='Admin User',
-            email='admin@slmg.com',
-            password=bc.generate_password_hash('Admin@1234').decode('utf-8'),
-            role='Admin',
-            department='Operations'
-        )
-        db.session.add(admin)
 
-        # Seed sample users
-        users = [
-            User(name='Finance Manager', email='finance@slmg.com',
-                 password=bc.generate_password_hash('Finance@1234').decode('utf-8'),
-                 role='Analyst', department='Finance'),
-            User(name='Sales Analyst', email='sales@slmg.com',
-                 password=bc.generate_password_hash('Sales@1234').decode('utf-8'),
-                 role='Analyst', department='Sales'),
-            User(name='HR Viewer', email='hr@slmg.com',
-                 password=bc.generate_password_hash('HR@1234').decode('utf-8'),
-                 role='Viewer', department='HR'),
-        ]
-        for u in users:
-            db.session.add(u)
+    if User.query.filter_by(email='admin@slmg.com').first():
+        return  # Already seeded
 
-        # Seed sample dashboards
-        import json
-        dashboards = [
-            Dashboard(
-                title='Finance Overview Q1 2025',
-                embed_url='https://app.powerbi.com/view?r=demo_finance',
-                department='Finance',
-                category='Financial',
-                tags=json.dumps(['revenue', 'EBITDA', 'Q1', 'finance']),
-                kpis=json.dumps([
-                    {"name": "Revenue", "value": 4800000, "target": 5000000, "previousValue": 4500000},
-                    {"name": "EBITDA Margin", "value": 18.5, "target": 20, "previousValue": 17.2},
-                    {"name": "Cost of Goods", "value": 2100000, "target": 2000000, "previousValue": 2300000},
-                    {"name": "Net Profit", "value": 820000, "target": 900000, "previousValue": 750000},
-                ]),
-                commentary='Q1 shows improving revenue trend. EBITDA slightly below target. Cost reduction initiative underway.',
-                created_by='admin@slmg.com'
-            ),
-            Dashboard(
-                title='Sales Performance Dashboard',
-                embed_url='https://app.powerbi.com/view?r=demo_sales',
-                department='Sales',
-                category='Sales',
-                tags=json.dumps(['sales', 'pipeline', 'conversion', 'growth']),
-                kpis=json.dumps([
-                    {"name": "Total Sales", "value": 12500, "target": 13000, "previousValue": 11800},
-                    {"name": "Conversion Rate", "value": 24.3, "target": 25, "previousValue": 22.1},
-                    {"name": "Avg Deal Size", "value": 18500, "target": 20000, "previousValue": 17800},
-                    {"name": "Customer Retention", "value": 87, "target": 90, "previousValue": 89},
-                ]),
-                commentary='Sales team showing strong conversion improvement. Deal size needs attention.',
-                created_by='admin@slmg.com'
-            ),
-            Dashboard(
-                title='HR Analytics & Workforce',
-                embed_url='https://app.powerbi.com/view?r=demo_hr',
-                department='HR',
-                category='People',
-                tags=json.dumps(['headcount', 'attrition', 'hiring', 'productivity']),
-                kpis=json.dumps([
-                    {"name": "Employee Satisfaction", "value": 78, "target": 80, "previousValue": 74},
-                    {"name": "Attrition Rate", "value": 9.2, "target": 8, "previousValue": 11.5},
-                    {"name": "Time to Hire", "value": 32, "target": 30, "previousValue": 38},
-                    {"name": "Training Completion", "value": 91, "target": 90, "previousValue": 85},
-                ]),
-                commentary='Attrition improving significantly. Satisfaction scores rising. Training on target.',
-                created_by='admin@slmg.com'
-            ),
-            Dashboard(
-                title='Operations & Supply Chain',
-                embed_url='https://app.powerbi.com/view?r=demo_ops',
-                department='Operations',
-                category='Operations',
-                tags=json.dumps(['supply', 'logistics', 'OEE', 'efficiency']),
-                kpis=json.dumps([
-                    {"name": "OEE Score", "value": 76, "target": 85, "previousValue": 72},
-                    {"name": "On-Time Delivery", "value": 93, "target": 95, "previousValue": 90},
-                    {"name": "Inventory Turnover", "value": 8.2, "target": 9, "previousValue": 7.8},
-                    {"name": "Downtime Hours", "value": 48, "target": 30, "previousValue": 65},
-                ]),
-                commentary='OEE below target but improving. Delivery performance strong. Downtime reducing.',
-                created_by='admin@slmg.com'
-            ),
-        ]
-        for d in dashboards:
-            db.session.add(d)
+    # Admin user
+    admin = User(
+        name='SLMG Admin',
+        email='admin@slmg.com',
+        password=bcrypt.generate_password_hash('Admin@1234').decode('utf-8'),
+        role='Admin',
+        department='Operations'
+    )
+    db.session.add(admin)
 
-        db.session.commit()
-        print('✅ Database seeded with admin, users, and dashboards.')
+    # Department users
+    dept_users = [
+        ('Finance Manager', 'finance@slmg.com', 'Finance@1234', 'Analyst', 'Finance'),
+        ('Sales Head',      'sales@slmg.com',   'Sales@1234',   'Analyst', 'Sales'),
+        ('HR Manager',      'hr@slmg.com',       'HR@1234',      'Viewer',  'HR'),
+        ('Ops Manager',     'ops@slmg.com',      'Ops@1234',     'Analyst', 'Operations'),
+    ]
+    for name, email, pwd, role, dept in dept_users:
+        db.session.add(User(
+            name=name, email=email,
+            password=bcrypt.generate_password_hash(pwd).decode('utf-8'),
+            role=role, department=dept
+        ))
+
+    # Sample dashboards — pass plain Python objects, NOT json.dumps()
+    # The model property setter handles JSON encoding internally
+    dashboards = [
+        Dashboard(
+            title='Finance Overview Q1 2025',
+            embed_url='https://app.powerbi.com/view?r=demo_finance',
+            department='Finance', category='Financial',
+            tags_raw='["revenue","EBITDA","Q1","finance"]',
+            kpis_raw='[{"name":"Revenue","value":4800000,"target":5000000,"previousValue":4500000},{"name":"EBITDA Margin","value":18.5,"target":20,"previousValue":17.2},{"name":"Cost of Goods","value":2100000,"target":2000000,"previousValue":2300000},{"name":"Net Profit","value":820000,"target":900000,"previousValue":750000}]',
+            commentary='Q1 shows improving revenue trend. EBITDA slightly below target. Cost reduction initiative underway.',
+            created_by='admin@slmg.com'
+        ),
+        Dashboard(
+            title='Sales Performance Dashboard',
+            embed_url='https://app.powerbi.com/view?r=demo_sales',
+            department='Sales', category='Sales',
+            tags_raw='["sales","pipeline","conversion","growth"]',
+            kpis_raw='[{"name":"Total Sales","value":12500,"target":13000,"previousValue":11800},{"name":"Conversion Rate","value":24.3,"target":25,"previousValue":22.1},{"name":"Avg Deal Size","value":18500,"target":20000,"previousValue":17800},{"name":"Customer Retention","value":87,"target":90,"previousValue":89}]',
+            commentary='Sales team showing strong conversion improvement. Deal size needs focus.',
+            created_by='admin@slmg.com'
+        ),
+        Dashboard(
+            title='HR Analytics & Workforce',
+            embed_url='https://app.powerbi.com/view?r=demo_hr',
+            department='HR', category='People',
+            tags_raw='["headcount","attrition","hiring","productivity"]',
+            kpis_raw='[{"name":"Employee Satisfaction","value":78,"target":80,"previousValue":74},{"name":"Attrition Rate","value":9.2,"target":8,"previousValue":11.5},{"name":"Time to Hire","value":32,"target":30,"previousValue":38},{"name":"Training Completion","value":91,"target":90,"previousValue":85}]',
+            commentary='Attrition improving. Satisfaction scores rising. Training on target.',
+            created_by='admin@slmg.com'
+        ),
+        Dashboard(
+            title='Operations & Supply Chain',
+            embed_url='https://app.powerbi.com/view?r=demo_ops',
+            department='Operations', category='Operations',
+            tags_raw='["supply","logistics","OEE","efficiency"]',
+            kpis_raw='[{"name":"OEE Score","value":76,"target":85,"previousValue":72},{"name":"On-Time Delivery","value":93,"target":95,"previousValue":90},{"name":"Inventory Turnover","value":8.2,"target":9,"previousValue":7.8},{"name":"Downtime Hours","value":48,"target":30,"previousValue":65}]',
+            commentary='OEE below target but improving. Delivery performance strong.',
+            created_by='admin@slmg.com'
+        ),
+    ]
+    for d in dashboards:
+        db.session.add(d)
+
+    db.session.commit()
+    print('✅ Database seeded: admin, users, and dashboards created.')
 
 
 if __name__ == '__main__':

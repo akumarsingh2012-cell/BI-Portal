@@ -354,7 +354,7 @@ h1,h2,h3,.bebas { font-family: 'Bebas Neue', sans-serif; letter-spacing: .04em; 
         <div id="loginError" style="display:none;background:#FEE2E2;border:1px solid #FCA5A5;border-radius:8px;padding:10px 14px;font-size:13px;color:#9B1C1C;margin-bottom:16px;"></div>
         <div class="form-group">
           <label class="form-label">Email Address</label>
-          <input type="email" id="loginEmail" class="form-input" placeholder="admin@slmg.com" autocomplete="email">
+          <input type="email" id="loginEmail" class="form-input" placeholder="your@email.com" autocomplete="email">
         </div>
         <div class="form-group">
           <label class="form-label">Password</label>
@@ -364,15 +364,9 @@ h1,h2,h3,.bebas { font-family: 'Bebas Neue', sans-serif; letter-spacing: .04em; 
           <span id="loginBtnText">Sign In</span>
           <span id="loginSpinner" style="display:none;" class="spinner"></span>
         </button>
-        <div style="margin-top:18px;padding:14px;background:var(--surface2);border-radius:10px;font-size:12px;color:var(--text3);">
-          <strong style="color:var(--text2);display:block;margin-bottom:6px;">Demo Accounts</strong>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;">
-            <span>🔴 admin@slmg.com / Admin@1234</span>
-            <span>🟢 finance@slmg.com / Finance@1234</span>
-            <span>🔵 sales@slmg.com / Sales@1234</span>
-            <span>🟣 hr@slmg.com / HR@1234</span>
-          </div>
-        </div>
+        <p style="margin-top:14px;font-size:12px;color:var(--text3);text-align:center;">
+          Contact your administrator if you need access.
+        </p>
       </div>
     </div>
     <p style="text-align:center;margin-top:16px;font-size:11px;color:var(--text3);">© 2025 SLMG Beverages Pvt. Ltd. — United to Grow Ahead</p>
@@ -935,34 +929,67 @@ setupLogos();
 
 // ── API Helper ──────────────────────────────────────────────
 async function api(method, path, body = null) {
+  // Always read token fresh from STATE (not stale closure)
+  const token = STATE.token || localStorage.getItem('slmg_token') || '';
   const headers = { 'Content-Type': 'application/json' };
-  if (STATE.token) headers['Authorization'] = `Bearer ${STATE.token}`;
-  const opts = { method, headers, credentials: 'include' };
+  if (token) headers['Authorization'] = 'Bearer ' + token;
+  const opts = { method, headers };
   if (body) opts.body = JSON.stringify(body);
-  const res = await fetch(API + path, opts);
+  let res;
+  try {
+    res = await fetch(path, opts);
+  } catch (networkErr) {
+    throw new Error('Network error — check your connection');
+  }
+  // If 401 and we have a token, it expired → force logout
+  if (res.status === 401 && token) {
+    STATE.token = ''; STATE.user = null;
+    localStorage.removeItem('slmg_token'); localStorage.removeItem('slmg_user');
+    document.getElementById('mainApp').style.display = 'none';
+    document.getElementById('loginPage').style.display = 'flex';
+    const err = document.getElementById('loginError');
+    err.textContent = 'Session expired. Please sign in again.';
+    err.style.display = 'block';
+    throw new Error('Session expired');
+  }
   const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data.error || data.message || `HTTP ${res.status}`);
+  if (!res.ok) throw new Error(data.error || data.message || 'HTTP ' + res.status);
   return data;
 }
 
 // ── Auth ────────────────────────────────────────────────────
 async function doLogin() {
-  const email = document.getElementById('loginEmail').value.trim();
+  const email = document.getElementById('loginEmail').value.trim().toLowerCase();
   const pass = document.getElementById('loginPass').value;
-  const err = document.getElementById('loginError');
-  err.style.display = 'none';
+  const errEl = document.getElementById('loginError');
+  errEl.style.display = 'none';
   if (!email || !pass) { showLoginError('Email and password are required'); return; }
 
   setBtnLoading('loginBtnText', 'loginSpinner', true);
   try {
-    const data = await api('POST', '/api/auth/login', { email, password: pass });
+    // Login call — no auth token needed here
+    const res = await fetch('/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password: pass })
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      showLoginError(data.error || 'Login failed. Please try again.');
+      return;
+    }
+    if (!data.token) {
+      showLoginError('No token received — contact administrator.');
+      return;
+    }
+    // Store token and user in both STATE and localStorage
     STATE.token = data.token;
     STATE.user = data.user;
     localStorage.setItem('slmg_token', data.token);
     localStorage.setItem('slmg_user', JSON.stringify(data.user));
     bootApp();
   } catch (e) {
-    showLoginError(e.message);
+    showLoginError(e.message || 'Network error. Please try again.');
   } finally {
     setBtnLoading('loginBtnText', 'loginSpinner', false, 'Sign In');
   }
@@ -974,15 +1001,16 @@ function showLoginError(msg) {
   el.style.display = 'block';
 }
 
-async function doLogout() {
-  try { await api('POST', '/api/auth/logout'); } catch (e) {}
-  STATE.token = ''; STATE.user = null;
-  localStorage.removeItem('slmg_token'); localStorage.removeItem('slmg_user');
+function doLogout() {
+  // Clear all state — JWT is stateless so just remove client-side token
   if (STATE.autoRefreshInterval) clearInterval(STATE.autoRefreshInterval);
+  STATE.token = ''; STATE.user = null; STATE.dashboards = [];
+  localStorage.removeItem('slmg_token'); localStorage.removeItem('slmg_user');
   document.getElementById('mainApp').style.display = 'none';
   document.getElementById('loginPage').style.display = 'flex';
   document.getElementById('loginEmail').value = '';
   document.getElementById('loginPass').value = '';
+  document.getElementById('loginError').style.display = 'none';
 }
 
 // Enter key login
@@ -1640,32 +1668,51 @@ async function saveDashboard() {
   const url = document.getElementById('newDashUrl').value.trim();
   const dept = document.getElementById('newDashDept').value;
   const cat = document.getElementById('newDashCat').value;
-  const tags = document.getElementById('newDashTags').value.split(',').map(t=>t.trim()).filter(Boolean);
   const commentary = document.getElementById('newDashCommentary').value.trim();
+  const tagsRaw = document.getElementById('newDashTags').value;
+  const tags = tagsRaw ? tagsRaw.split(',').map(t => t.trim()).filter(Boolean) : [];
 
-  if (!title || !url || !dept || !cat) { toast('Fill all required fields', 'warning'); return; }
+  if (!title) { toast('Dashboard title is required', 'warning'); return; }
+  if (!url) { toast('Embed URL is required', 'warning'); return; }
+  if (!dept) { toast('Department is required', 'warning'); return; }
 
-  // Collect KPIs
+  // Collect KPIs — all fields optional
   const kpis = [];
   document.querySelectorAll('#kpiRows > div').forEach(row => {
-    const name = row.querySelector('[data-kpi="name"]')?.value.trim();
-    const value = parseFloat(row.querySelector('[data-kpi="value"]')?.value);
-    const target = parseFloat(row.querySelector('[data-kpi="target"]')?.value);
-    const previous = parseFloat(row.querySelector('[data-kpi="previous"]')?.value);
-    if (name && !isNaN(value) && !isNaN(target)) {
-      kpis.push({ name, value, target, previousValue: isNaN(previous) ? value : previous });
+    const nameEl = row.querySelector('[data-kpi="name"]');
+    const valueEl = row.querySelector('[data-kpi="value"]');
+    const targetEl = row.querySelector('[data-kpi="target"]');
+    const prevEl = row.querySelector('[data-kpi="previous"]');
+    const name = nameEl ? nameEl.value.trim() : '';
+    const value = valueEl ? parseFloat(valueEl.value) : NaN;
+    const target = targetEl ? parseFloat(targetEl.value) : NaN;
+    const previous = prevEl ? parseFloat(prevEl.value) : NaN;
+    if (name) {
+      kpis.push({
+        name,
+        value: isNaN(value) ? 0 : value,
+        target: isNaN(target) ? 0 : target,
+        previousValue: isNaN(previous) ? (isNaN(value) ? 0 : value) : previous
+      });
     }
   });
 
   setBtnLoading('saveDashText', 'saveDashSpinner', true);
   try {
-    await api('POST', '/api/dashboards/', { title, embed_url: url, department: dept, category: cat, tags, kpis, commentary });
+    const payload = { title, embed_url: url, department: dept, category: cat, tags, kpis, commentary };
+    await api('POST', '/api/dashboards/', payload);
+    // Reset form
+    document.getElementById('newDashTitle').value = '';
+    document.getElementById('newDashUrl').value = '';
+    document.getElementById('newDashTags').value = '';
+    document.getElementById('newDashCommentary').value = '';
+    document.getElementById('kpiRows').innerHTML = '';
     closeModal('addDashModal');
     await loadDashboards();
     await loadPortfolioStats();
-    toast('Dashboard created!', 'success');
+    toast('✅ Dashboard created successfully!', 'success');
   } catch (e) {
-    toast('Failed: ' + e.message, 'error');
+    toast('Failed to create dashboard: ' + e.message, 'error');
   } finally {
     setBtnLoading('saveDashText', 'saveDashSpinner', false, 'Create Dashboard');
   }
@@ -1877,12 +1924,28 @@ function setBtnLoading(textId, spinnerId, loading, resetText = '') {
 }
 
 // ── Init ────────────────────────────────────────────────────
-if (STATE.token && STATE.user) {
-  bootApp();
-} else {
-  document.getElementById('loginPage').style.display = 'flex';
-  document.getElementById('mainApp').style.display = 'none';
-}
+// Init — restore session from localStorage if token exists
+(function init() {
+  const token = localStorage.getItem('slmg_token');
+  const userStr = localStorage.getItem('slmg_user');
+  if (token && userStr) {
+    try {
+      STATE.token = token;
+      STATE.user = JSON.parse(userStr);
+      document.getElementById('loginPage').style.display = 'none';
+      document.getElementById('mainApp').style.display = 'block';
+      bootApp();
+    } catch (e) {
+      localStorage.removeItem('slmg_token');
+      localStorage.removeItem('slmg_user');
+      document.getElementById('loginPage').style.display = 'flex';
+      document.getElementById('mainApp').style.display = 'none';
+    }
+  } else {
+    document.getElementById('loginPage').style.display = 'flex';
+    document.getElementById('mainApp').style.display = 'none';
+  }
+})();
 </script>
 </body>
 </html>
