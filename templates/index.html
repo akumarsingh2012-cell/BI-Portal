@@ -333,6 +333,34 @@ h1,h2,h3,.bebas { font-family: 'Bebas Neue', sans-serif; letter-spacing: .04em; 
 .spinner { display: inline-block; width: 18px; height: 18px; border: 2px solid rgba(255,255,255,.3); border-top-color: white; border-radius: 50%; animation: spin .6s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 .spinner-red { border-color: rgba(232,25,44,.2); border-top-color: var(--red); }
+
+/* AI Chat */
+.chat-container { display:flex;flex-direction:column;height:500px;border:1px solid var(--border);border-radius:12px;overflow:hidden;background:var(--surface); }
+.chat-messages { flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px; }
+.chat-msg { max-width:80%;padding:10px 14px;border-radius:12px;font-size:13px;line-height:1.5; }
+.chat-msg.user { background:var(--red);color:white;align-self:flex-end;border-bottom-right-radius:4px; }
+.chat-msg.assistant { background:var(--surface2);color:var(--text);align-self:flex-start;border-bottom-left-radius:4px;border:1px solid var(--border); }
+.chat-msg.assistant strong { color:var(--red); }
+.chat-input-row { display:flex;gap:8px;padding:12px;border-top:1px solid var(--border);background:var(--surface2); }
+.chat-input { flex:1;padding:9px 13px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text);font-size:13px;font-family:inherit;outline:none; }
+.chat-input:focus { border-color:var(--red); }
+.chat-chip { padding:4px 12px;border-radius:99px;font-size:12px;background:var(--surface2);border:1px solid var(--border);cursor:pointer;color:var(--text2);transition:all .15s; }
+.chat-chip:hover { background:var(--red);color:white;border-color:var(--red); }
+/* Compare */
+.compare-grid { display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:20px; }
+/* User management */
+.action-btn { padding:4px 8px;border-radius:5px;font-size:11px;cursor:pointer;border:1px solid var(--border);background:transparent;color:var(--text2);transition:all .15s; }
+.action-btn:hover { background:var(--surface2); }
+.action-btn.danger { color:#DC2626;border-color:#FCA5A5; }
+.action-btn.danger:hover { background:#FEE2E2; }
+.row-checkbox { width:16px;height:16px;accent-color:var(--red);cursor:pointer; }
+/* KPI Card */
+.kpi-card { background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:14px; }
+.kpi-card .kpi-name { font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text2);margin-bottom:4px; }
+.kpi-card .kpi-value { font-family:'Bebas Neue';font-size:28px;line-height:1; }
+/* Progress ring */
+.progress-ring { transform:rotate(-90deg); }
+
 </style>
 </head>
 <body>
@@ -415,7 +443,15 @@ h1,h2,h3,.bebas { font-family: 'Bebas Neue', sans-serif; letter-spacing: .04em; 
       <div class="nav-item" data-page="bookmarks" onclick="navTo('bookmarks')">
         <span class="icon">🔖</span><span>Bookmarks</span>
       </div>
+      <div class="nav-item" data-page="ai-chat" onclick="navTo('ai-chat')">
+        <span class="icon">💬</span><span>AI Assistant</span>
+        <span style="margin-left:auto;font-size:9px;background:linear-gradient(135deg,#7C3AED,#EC4899);color:white;padding:2px 6px;border-radius:99px;font-weight:700;">NEW</span>
+      </div>
 
+      <div class="nav-item" data-page="ai-chat" onclick="navTo('ai-chat')">
+        <span class="icon">💬</span><span>AI Assistant</span>
+        <span style="margin-left:auto;font-size:9px;background:linear-gradient(135deg,#7C3AED,#EC4899);color:white;padding:2px 6px;border-radius:99px;font-weight:700;">NEW</span>
+      </div>
       <div class="s-label" style="margin-top:8px;">Admin</div>
       <div class="nav-item admin-only" data-page="users" onclick="navTo('users')">
         <span class="icon">👥</span><span>User Management</span>
@@ -673,7 +709,61 @@ h1,h2,h3,.bebas { font-family: 'Bebas Neue', sans-serif; letter-spacing: .04em; 
         <div id="compareResult"></div>
       </div>
 
-      <!-- ===== BOOKMARKS PAGE ===== -->
+      
+
+<!-- ===== AI ASSISTANT PAGE ===== -->
+<div id="page-ai-chat" class="page">
+  <div class="page-header" style="border-radius:14px;margin-bottom:24px;">
+    <div class="wave-text">AI Assistant</div>
+    <h1 style="font-size:28px;margin-top:2px;">Ask Anything About Your Data 🤖</h1>
+    <p style="color:rgba(255,255,255,.75);font-size:13px;margin-top:4px;">Powered by real KPI data from your dashboards</p>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 280px;gap:20px;">
+    <div>
+      <div style="display:flex;gap:10px;margin-bottom:12px;align-items:flex-end;">
+        <div style="flex:1;">
+          <label class="form-label">Focus on Dashboard (optional)</label>
+          <select id="chatDashSelect" class="form-input" style="font-size:13px;">
+            <option value="">All Dashboards</option>
+          </select>
+        </div>
+        <button class="btn btn-ghost btn-sm" onclick="clearChat()">🗑 Clear</button>
+      </div>
+      <div class="chat-container">
+        <div id="chatSuggestions" style="display:flex;flex-wrap:wrap;gap:6px;padding:10px 16px;border-bottom:1px solid var(--border);">
+          <span class="chat-chip" onclick="sendChatSuggestion(this)">What are the worst performing KPIs?</span>
+          <span class="chat-chip" onclick="sendChatSuggestion(this)">Which department is performing best?</span>
+          <span class="chat-chip" onclick="sendChatSuggestion(this)">What are key risks this period?</span>
+          <span class="chat-chip" onclick="sendChatSuggestion(this)">Summarize all dashboard performance</span>
+          <span class="chat-chip" onclick="sendChatSuggestion(this)">What KPIs are improving?</span>
+          <span class="chat-chip" onclick="sendChatSuggestion(this)">Show me the Finance KPIs</span>
+        </div>
+        <div class="chat-messages" id="chatMessages">
+          <div class="chat-msg assistant">👋 Hi! I'm your SLMG BI Assistant. Ask me anything about your dashboards, KPIs, performance trends, or specific metrics. I'll answer based on your real data.</div>
+        </div>
+        <div class="chat-input-row">
+          <input type="text" class="chat-input" id="chatInput" placeholder="Ask about your data..." onkeydown="if(event.key==='Enter')sendChat()">
+          <button class="btn btn-red" onclick="sendChat()" style="padding:9px 16px;">
+            <span id="chatBtnText">Send</span>
+            <span id="chatSpinner" class="spinner" style="display:none;"></span>
+          </button>
+        </div>
+      </div>
+    </div>
+    <div>
+      <div class="card" style="margin-bottom:16px;">
+        <div class="card-header"><strong>Quick Insights</strong></div>
+        <div class="card-body" id="quickInsightsPanel"><p style="font-size:12px;color:var(--text3);">Insights appear as you chat</p></div>
+      </div>
+      <div class="card">
+        <div class="card-header"><strong>Data Sources</strong></div>
+        <div class="card-body" id="chatDataSources"><p style="font-size:12px;color:var(--text3);">Loading...</p></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== BOOKMARKS PAGE ===== -->
       <div id="page-bookmarks" class="page">
         <h2 style="font-family:'Bebas Neue';font-size:28px;margin-bottom:20px;">🔖 Bookmarks</h2>
         <div id="bookmarkGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:18px;"></div>
@@ -1068,7 +1158,8 @@ function navTo(page) {
   if (page === 'analytics') populateAnalyticsSelects();
   if (page === 'compare') populateCompareSelects();
   if (page === 'bookmarks') loadBookmarks();
-  if (page === 'users' && STATE.user?.role === 'Admin') loadUsers();
+  if (page === 'ai-chat') initChatPage();
+  if (page === 'users' && STATE.user?.role === 'Admin') { loadUsers(); loadUserStats(); }
   if (page === 'activity' && STATE.user?.role === 'Admin') loadActivity();
 }
 
@@ -1699,7 +1790,8 @@ async function saveDashboard() {
 
   setBtnLoading('saveDashText', 'saveDashSpinner', true);
   try {
-    const payload = { title, embed_url: url, department: dept, category: cat, tags, kpis, commentary };
+    const aiContext = document.getElementById('newDashAiContext')?.value.trim() || '';
+    const payload = { title, embed_url: url, department: dept, category: cat, tags, kpis, commentary, ai_context: aiContext };
     await api('POST', '/api/dashboards/', payload);
     // Reset form
     document.getElementById('newDashTitle').value = '';
@@ -1720,8 +1812,15 @@ async function saveDashboard() {
 
 // ── User Management ──────────────────────────────────────────
 async function loadUsers() {
+  const search = document.getElementById('userSearch')?.value || '';
+  const role = document.getElementById('userRoleFilter')?.value || '';
+  const status = document.getElementById('userStatusFilter')?.value || '';
+  let url = '/api/users/?';
+  if (search) url += `search=${encodeURIComponent(search)}&`;
+  if (role) url += `role=${role}&`;
+  if (status) url += `status=${status}&`;
   try {
-    const data = await api('GET', '/api/users/');
+    const data = await api('GET', url);
     const tbody = document.getElementById('usersTableBody');
     tbody.innerHTML = data.users.map(u => `<tr>
       <td><div style="font-weight:600;">${u.name}</div></td>
@@ -1922,6 +2021,361 @@ function setBtnLoading(textId, spinnerId, loading, resetText = '') {
   document.getElementById(spinnerId).style.display = loading ? 'inline-block' : 'none';
   if (!loading && resetText) document.getElementById(textId).textContent = resetText;
 }
+
+
+// ── AI Chat ──────────────────────────────────────────────────
+function initChatPage() {
+  const dashSel = document.getElementById('chatDashSelect');
+  if(dashSel) {
+    dashSel.innerHTML = '<option value="">All Dashboards</option>' +
+      STATE.dashboards.map(d => `<option value="${d.id}">${d.title}</option>`).join('');
+  }
+  const sourceEl = document.getElementById('chatDataSources');
+  if (sourceEl) {
+    if (STATE.dashboards.length) {
+      sourceEl.innerHTML = STATE.dashboards.map(d => {
+        const pct = (d.kpi_summary||{}).score||0;
+        const c = pct>=80?'#22C55E':pct>=60?'#F59E0B':'#EF4444';
+        return `<div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;font-size:12px;">
+          <span style="width:8px;height:8px;border-radius:50%;background:${c};flex-shrink:0;"></span>
+          <span style="color:var(--text2);">${d.title}</span>
+        </div>`;
+      }).join('');
+    } else {
+      sourceEl.innerHTML = '<p style="font-size:12px;color:var(--text3);">No dashboards available</p>';
+    }
+  }
+}
+
+async function sendChat() {
+  const input = document.getElementById('chatInput');
+  if (!input) return;
+  const question = input.value.trim();
+  if (!question) return;
+  
+  const dashSel = document.getElementById('chatDashSelect');
+  const dashId = dashSel ? dashSel.value : '';
+  input.value = '';
+  
+  appendChatMsg(question, 'user');
+  
+  const typingId = 'typing_' + Date.now();
+  appendChatMsg('<span style="display:inline-block;animation:spin .6s linear infinite;border:2px solid rgba(232,25,44,.2);border-top-color:var(--red);border-radius:50%;width:14px;height:14px;"></span> Analyzing your data...', 'assistant', typingId);
+  
+  const chatBtn = document.getElementById('chatBtnText');
+  const chatSpin = document.getElementById('chatSpinner');
+  if(chatBtn) chatBtn.style.display = 'none';
+  if(chatSpin) chatSpin.style.display = '';
+  
+  try {
+    const payload = { question, history: (STATE.chatHistory||[]).slice(-10) };
+    if (dashId) payload.dashboard_id = parseInt(dashId);
+    
+    const data = await api('POST', '/api/analytics/ai-chat', payload);
+    
+    const typing = document.getElementById(typingId);
+    if (typing) typing.remove();
+    
+    const answer = data.answer || 'No response generated.';
+    appendChatMsg(formatChatResponse(answer), 'assistant');
+    
+    STATE.chatHistory = STATE.chatHistory || [];
+    STATE.chatHistory.push({ role: 'user', content: question });
+    STATE.chatHistory.push({ role: 'assistant', content: answer });
+    
+    updateQuickInsights(question, answer);
+    
+  } catch (e) {
+    const typing = document.getElementById(typingId);
+    if (typing) typing.remove();
+    appendChatMsg('❌ Error: ' + e.message, 'assistant');
+  } finally {
+    if(chatBtn) chatBtn.style.display = '';
+    if(chatSpin) chatSpin.style.display = 'none';
+  }
+}
+
+function formatChatResponse(text) {
+  return text.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br>');
+}
+
+function appendChatMsg(content, role, id='') {
+  const msgs = document.getElementById('chatMessages');
+  if (!msgs) return;
+  const div = document.createElement('div');
+  div.className = 'chat-msg ' + role;
+  if (id) div.id = id;
+  div.innerHTML = content;
+  msgs.appendChild(div);
+  msgs.scrollTop = msgs.scrollHeight;
+}
+
+function sendChatSuggestion(el) {
+  const input = document.getElementById('chatInput');
+  if (input) { input.value = el.textContent; sendChat(); }
+}
+
+function clearChat() {
+  STATE.chatHistory = [];
+  const msgs = document.getElementById('chatMessages');
+  if(msgs) msgs.innerHTML = '<div class="chat-msg assistant">👋 Chat cleared! Ask me anything about your dashboard data.</div>';
+  const qi = document.getElementById('quickInsightsPanel');
+  if(qi) qi.innerHTML = '<p style="font-size:12px;color:var(--text3);">Insights will appear here as you chat</p>';
+}
+
+function updateQuickInsights(q, a) {
+  const el = document.getElementById('quickInsightsPanel');
+  if (!el) return;
+  try {
+    const insights = JSON.parse(el.dataset.insights || '[]');
+    insights.unshift({ q: q.slice(0,40)+(q.length>40?'...':''), a: a.slice(0,80)+(a.length>80?'...':'') });
+    insights.splice(5);
+    el.dataset.insights = JSON.stringify(insights);
+    el.innerHTML = insights.map(i => `<div style="padding:8px;background:var(--surface2);border-radius:6px;border-left:3px solid var(--red);margin-bottom:6px;">
+      <div style="font-size:10px;font-weight:700;color:var(--text2);margin-bottom:3px;">${i.q}</div>
+      <div style="font-size:11px;color:var(--text2);">${i.a}</div>
+    </div>`).join('');
+  } catch(e) {}
+}
+
+// ── FIXED Compare Mode ────────────────────────────────────────
+function populateCompareSelects() {
+  const opts = '<option value="">— Select —</option>' +
+    STATE.dashboards.map(d => `<option value="${d.id}">${d.title} (${d.department})</option>`).join('');
+  ['compareSelect1','compareSelect2','compareSelect3'].forEach(id => {
+    const el = document.getElementById(id);
+    if(el) el.innerHTML = opts;
+  });
+}
+
+let showCompare3 = false;
+function toggleCompareSlot3() {
+  showCompare3 = !showCompare3;
+  const wrap = document.getElementById('compareSlot3Wrap');
+  if(wrap) wrap.style.display = showCompare3 ? '' : 'none';
+  const btn = document.querySelector('[onclick="toggleCompareSlot3()"]');
+  if(btn) btn.textContent = showCompare3 ? '− Remove 3rd' : '＋ Add 3rd';
+}
+
+async function doCompare() {
+  const id1 = document.getElementById('compareSelect1').value;
+  const id2 = document.getElementById('compareSelect2').value;
+  const id3El = document.getElementById('compareSelect3');
+  const id3 = showCompare3 && id3El ? id3El.value : '';
+
+  if (!id1 || !id2) { toast('Select at least 2 dashboards to compare', 'warning'); return; }
+  if (id1 === id2) { toast('Select two different dashboards', 'warning'); return; }
+
+  const ids = [+id1, +id2];
+  if (id3 && id3 !== id1 && id3 !== id2) ids.push(+id3);
+
+  const result = document.getElementById('compareResult');
+  result.innerHTML = `<div class="compare-grid">${ids.map(() => `<div class="skeleton" style="height:400px;border-radius:12px;"></div>`).join('')}</div>`;
+
+  const ct = document.getElementById('compareText');
+  const cs = document.getElementById('compareSpinner');
+  if(ct) ct.style.display='none'; if(cs) cs.style.display='';
+
+  try {
+    const data = await api('POST', '/api/analytics/compare', { dashboard_ids: ids });
+    const comparison = data.comparison || [];
+    if (!comparison.length) { result.innerHTML = '<p style="color:var(--text3);text-align:center;padding:40px;">No data returned</p>'; return; }
+    result.innerHTML = `<div class="compare-grid">${comparison.map(d => renderCompareCard(d)).join('')}</div>`;
+  } catch (e) {
+    result.innerHTML = `<div style="padding:30px;text-align:center;color:#DC2626;">❌ Compare Error: ${e.message}</div>`;
+  } finally {
+    if(ct) ct.style.display=''; if(cs) cs.style.display='none';
+  }
+}
+
+function renderCompareCard(d) {
+  const s = d.kpi_summary || {};
+  const pct = s.score || 0;
+  const c = pct>=80?'#22C55E':pct>=60?'#F59E0B':'#EF4444';
+  const kpisHtml = (d.kpis||[]).map(k=>renderKPICard(k)).join('');
+  const swot = d.swot || {};
+  return `<div class="card">
+    <div style="height:4px;background:${c};"></div>
+    <div class="card-header">
+      <span class="dept-pill dept-${d.department}">${d.department}</span>
+      <h3 style="margin-top:6px;font-size:15px;font-weight:700;">${d.title}</h3>
+      <div style="font-size:11px;color:var(--text3);">${d.category}</div>
+      <div style="display:flex;gap:10px;margin-top:8px;font-size:12px;">
+        <span style="color:${c};font-weight:700;">Health: ${pct}%</span>
+        <span style="color:#22C55E;">●${s.green||0}</span>
+        <span style="color:#F59E0B;">●${s.yellow||0}</span>
+        <span style="color:#EF4444;">●${s.red||0}</span>
+      </div>
+    </div>
+    <div class="card-body">
+      <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:16px;">${kpisHtml||'<p style="color:var(--text3);font-size:12px;">No KPIs configured</p>'}</div>
+      ${swot.summary?`<div style="padding:10px;background:var(--surface2);border-radius:8px;font-size:12px;color:var(--text2);border-left:3px solid ${c};">${swot.summary}</div>`:''}
+    </div>
+    <div class="card-footer">
+      <button class="btn btn-ghost btn-sm" onclick="openDashboard(${d.id})">View Full →</button>
+      <button class="btn btn-ghost btn-sm" onclick="toggleBookmark(${d.id},null)" style="margin-left:6px;">🔖</button>
+    </div>
+  </div>`;
+}
+
+// ── User Stats ───────────────────────────────────────────────
+async function loadUserStats() {
+  try {
+    const data = await api('GET', '/api/users/stats');
+    const el = (id, val) => { const e = document.getElementById(id); if(e) e.textContent = val; };
+    el('usTotalUsers', data.total||0);
+    el('usActiveUsers', data.active||0);
+    el('usInactiveUsers', data.inactive||0);
+    el('usAdminCount', (data.by_role&&data.by_role.Admin)||0);
+  } catch(e) { console.error('User stats error:', e); }
+}
+
+function toggleUserStatus(id, btn) {
+  api('POST', `/api/users/${id}/toggle-status`).then(data => {
+    toast(`User ${data.is_active ? 'activated' : 'deactivated'}`, 'success');
+    loadUsers(); loadUserStats();
+  }).catch(e => toast('Failed: ' + e.message, 'error'));
+}
+
+function openResetPass(id, email) {
+  STATE.resetPassUserId = id;
+  const el = document.getElementById('resetPassUserEmail');
+  if(el) el.textContent = email;
+  const inp = document.getElementById('resetPassInput');
+  if(inp) inp.value = '';
+  openModal('resetPassModal');
+}
+
+async function doResetPass() {
+  const newPass = document.getElementById('resetPassInput')?.value;
+  if (!newPass || newPass.length < 6) { toast('Min 6 characters', 'warning'); return; }
+  try {
+    await api('POST', `/api/users/${STATE.resetPassUserId}/reset-password`, { new_password: newPass });
+    toast('Password reset!', 'success');
+    closeModal('resetPassModal');
+  } catch(e) { toast('Reset failed: ' + e.message, 'error'); }
+}
+
+async function unlockUser(id) {
+  try {
+    await api('PUT', `/api/users/${id}`, { unlock: true });
+    toast('Account unlocked!', 'success');
+    loadUsers();
+  } catch(e) { toast('Unlock failed: ' + e.message, 'error'); }
+}
+
+async function bulkAction(action) {
+  if (!STATE.selectedUserIds || !STATE.selectedUserIds.size) return;
+  if (!confirm(`${action} ${STATE.selectedUserIds.size} users?`)) return;
+  try {
+    await api('POST', '/api/users/bulk-action', { action, user_ids: [...STATE.selectedUserIds] });
+    STATE.selectedUserIds.clear();
+    const btn = document.getElementById('bulkDeactivateBtn');
+    if(btn) btn.style.display = 'none';
+    const cb = document.getElementById('selectAllUsers');
+    if(cb) cb.checked = false;
+    toast('Bulk action completed!', 'success');
+    loadUsers(); loadUserStats();
+  } catch(e) { toast('Failed: ' + e.message, 'error'); }
+}
+
+function handleUserCheckbox(cb) {
+  STATE.selectedUserIds = STATE.selectedUserIds || new Set();
+  if (cb.checked) STATE.selectedUserIds.add(parseInt(cb.value));
+  else STATE.selectedUserIds.delete(parseInt(cb.value));
+  const btn = document.getElementById('bulkDeactivateBtn');
+  if(btn) btn.style.display = STATE.selectedUserIds.size > 0 ? '' : 'none';
+}
+
+function toggleSelectAll(masterCb) {
+  STATE.selectedUserIds = STATE.selectedUserIds || new Set();
+  document.querySelectorAll('.user-checkbox').forEach(cb => {
+    cb.checked = masterCb.checked;
+    if (masterCb.checked) STATE.selectedUserIds.add(parseInt(cb.value));
+    else STATE.selectedUserIds.delete(parseInt(cb.value));
+  });
+  const btn = document.getElementById('bulkDeactivateBtn');
+  if(btn) btn.style.display = STATE.selectedUserIds.size > 0 ? '' : 'none';
+}
+
+function togglePassVis(inputId, btn) {
+  const inp = document.getElementById(inputId);
+  if(!inp) return;
+  inp.type = inp.type === 'password' ? 'text' : 'password';
+  btn.textContent = inp.type === 'password' ? '👁' : '🙈';
+}
+
+// ── Enhanced loadDashboards with category filter ──────────────
+const _origLoadDashboards = loadDashboards;
+async function loadDashboards() {
+  await _origLoadDashboards();
+  populateCategoryFilter();
+}
+
+function populateCategoryFilter() {
+  const sel = document.getElementById('categoryFilter');
+  if (!sel) return;
+  const cats = [...new Set(STATE.dashboards.map(d => d.category))].sort();
+  sel.innerHTML = '<option value="">All Categories</option>' + cats.map(c => `<option value="${c}">${c}</option>`).join('');
+}
+
+function filterByCategory(cat) {
+  STATE.filteredDashboards = STATE.dashboards.filter(d => !cat || d.category === cat);
+  renderDashboards();
+}
+
+// ── Open Edit Dashboard ───────────────────────────────────────
+function openEditDash(d) {
+  STATE.editingDashId = d.id;
+  document.getElementById('dashModalTitle').textContent = 'Edit Dashboard';
+  document.getElementById('saveDashText').textContent = 'Save Changes';
+  if(document.getElementById('editDashId')) document.getElementById('editDashId').value = d.id;
+  document.getElementById('newDashTitle').value = d.title;
+  document.getElementById('newDashUrl').value = d.embed_url;
+  document.getElementById('newDashCat').value = d.category;
+  document.getElementById('newDashTags').value = (d.tags||[]).join(', ');
+  document.getElementById('newDashCommentary').value = d.commentary||'';
+  if(document.getElementById('newDashAiContext')) document.getElementById('newDashAiContext').value = d.ai_context||'';
+  if(document.getElementById('newDashPublic')) document.getElementById('newDashPublic').checked = d.is_public||false;
+  
+  if (STATE.user?.role === 'Admin') {
+    document.getElementById('newDashDept').innerHTML = `
+      <option value="Finance">Finance</option><option value="Sales">Sales</option>
+      <option value="HR">HR</option><option value="Operations">Operations</option>
+      <option value="IT">IT</option><option value="Marketing">Marketing</option>`;
+    document.getElementById('newDashDept').value = d.department;
+  } else {
+    document.getElementById('newDashDept').innerHTML = `<option value="${d.department}">${d.department}</option>`;
+  }
+  
+  document.getElementById('kpiRows').innerHTML = '';
+  (d.kpis||[]).forEach(k => addKPIRow(k));
+  if (!(d.kpis||[]).length) addKPIRow();
+  openModal('addDashModal');
+}
+
+async function deleteDash(id, title) {
+  if (!confirm(`Delete "${title}"? This cannot be undone.`)) return;
+  try {
+    await api('DELETE', `/api/dashboards/${id}`);
+    toast(`Dashboard deleted`, 'success');
+    await loadDashboards();
+    await loadPortfolioStats();
+  } catch(e) { toast('Delete failed: ' + e.message, 'error'); }
+}
+
+// ── Dark mode restore ─────────────────────────────────────────
+(function restoreDark() {
+  if (localStorage.getItem('slmg_dark') === '1') {
+    document.getElementById('htmlRoot').className = 'dark';
+    const dt = document.getElementById('darkToggle');
+    if(dt) dt.checked = true;
+    const ds = document.getElementById('darkSlider');
+    if(ds) ds.style.background = 'var(--red)';
+    const dth = document.getElementById('darkThumb');
+    if(dth) dth.style.left = '18px';
+  }
+})();
 
 // ── Init ────────────────────────────────────────────────────
 // Init — restore session from localStorage if token exists

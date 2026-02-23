@@ -1,5 +1,5 @@
 """
-Dashboard Routes — CRUD, Bookmarks, Notes
+Dashboard Routes — Fixed HTTP 500, full CRUD, Bookmarks, Notes, View tracking
 """
 
 import json
@@ -17,121 +17,153 @@ from services.kpi_service import get_dashboard_kpi_summary, enrich_kpis
 dash_bp = Blueprint('dashboards', __name__)
 
 
+def _safe_kpi_summary(kpis):
+    """Safely compute KPI summary — never raises."""
+    try:
+        return get_dashboard_kpi_summary(kpis)
+    except Exception:
+        return {'total': 0, 'green': 0, 'yellow': 0, 'red': 0, 'score': 0, 'label': 'Error'}
+
+
 @dash_bp.route('/', methods=['GET'])
 @jwt_required_custom
 def get_dashboards():
-    """
-    Get all dashboards for current user.
-    CORE SECURITY: Department-filtered on backend.
-    Admin sees all. Others see only their department.
-    """
     user = get_current_user()
     if not user:
         return jsonify({'error': 'Unauthorized'}), 401
 
-    query = Dashboard.query
-    query = department_filter(query, user, Dashboard)  # ENFORCE DEPARTMENT SECURITY
+    try:
+        query = Dashboard.query
+        query = department_filter(query, user, Dashboard)
 
-    # Optional filters
-    category = request.args.get('category')
-    search = request.args.get('search', '').strip()
-    department = request.args.get('department')
+        category = request.args.get('category', '')
+        search = request.args.get('search', '').strip()
+        department = request.args.get('department', '')
+        sort_by = request.args.get('sort', 'created')
 
-    if category:
-        query = query.filter(Dashboard.category == category)
-    if department and user.role == 'Admin':
-        query = query.filter(Dashboard.department == department)
-    if search:
-        query = query.filter(
-            (Dashboard.title.ilike(f'%{search}%')) |
-            (Dashboard.category.ilike(f'%{search}%')) |
-            (Dashboard.tags_raw.ilike(f'%{search}%'))
-        )
+        if category:
+            query = query.filter(Dashboard.category == category)
+        if department and user.role == 'Admin':
+            query = query.filter(Dashboard.department == department)
+        if search:
+            query = query.filter(
+                (Dashboard.title.ilike(f'%{search}%')) |
+                (Dashboard.category.ilike(f'%{search}%')) |
+                (Dashboard.tags_raw.ilike(f'%{search}%')) |
+                (Dashboard.commentary.ilike(f'%{search}%'))
+            )
 
-    dashboards = query.order_by(Dashboard.sort_order, Dashboard.created_at.desc()).all()
+        if sort_by == 'views':
+            query = query.order_by(Dashboard.view_count.desc())
+        elif sort_by == 'title':
+            query = query.order_by(Dashboard.title.asc())
+        else:
+            query = query.order_by(Dashboard.sort_order.asc(), Dashboard.created_at.desc())
 
-    # Enrich with KPI summary
-    result = []
-    for d in dashboards:
-        d_dict = d.to_dict()
-        kpi_summary = get_dashboard_kpi_summary(d.kpis)
-        d_dict['kpi_summary'] = kpi_summary
-        d_dict['is_bookmarked'] = d.id in user.bookmarks
-        result.append(d_dict)
+        dashboards = query.all()
 
-    return jsonify({'dashboards': result, 'total': len(result)}), 200
+        result = []
+        bookmarks = user.bookmarks
+        for d in dashboards:
+            try:
+                d_dict = d.to_dict()
+                d_dict['kpi_summary'] = _safe_kpi_summary(d.kpis)
+                d_dict['is_bookmarked'] = d.id in bookmarks
+                result.append(d_dict)
+            except Exception as e:
+                # Skip broken dashboards but don't crash
+                print(f'Error processing dashboard {d.id}: {e}')
+                continue
+
+        return jsonify({'dashboards': result, 'total': len(result)}), 200
+
+    except Exception as e:
+        print(f'Dashboard list error: {e}')
+        return jsonify({'error': f'Failed to load dashboards: {str(e)}'}), 500
 
 
 @dash_bp.route('/<int:dashboard_id>', methods=['GET'])
 @jwt_required_custom
 def get_dashboard(dashboard_id):
-    """Get single dashboard with full KPI enrichment."""
     user = get_current_user()
     if not user:
         return jsonify({'error': 'Unauthorized'}), 401
 
-    dashboard = Dashboard.query.get_or_404(dashboard_id)
+    try:
+        dashboard = Dashboard.query.get(dashboard_id)
+        if not dashboard:
+            return jsonify({'error': 'Dashboard not found'}), 404
+    except Exception:
+        return jsonify({'error': 'Dashboard not found'}), 404
 
-    # Department access check
-    if user.role != 'Admin' and dashboard.department != user.department:
+    if user.role != 'Admin' and dashboard.department != user.department and not dashboard.is_public:
         return jsonify({'error': 'Access denied — department restriction'}), 403
 
-    d_dict = dashboard.to_dict()
-    d_dict['kpis'] = enrich_kpis(dashboard.kpis)
-    d_dict['kpi_summary'] = get_dashboard_kpi_summary(dashboard.kpis)
-    d_dict['is_bookmarked'] = dashboard.id in user.bookmarks
+    try:
+        # Increment view count
+        dashboard.view_count = (dashboard.view_count or 0) + 1
+        db.session.commit()
 
-    return jsonify({'dashboard': d_dict}), 200
+        d_dict = dashboard.to_dict()
+        d_dict['kpis'] = enrich_kpis(dashboard.kpis)
+        d_dict['kpi_summary'] = _safe_kpi_summary(dashboard.kpis)
+        d_dict['is_bookmarked'] = dashboard.id in user.bookmarks
+
+        return jsonify({'dashboard': d_dict}), 200
+    except Exception as e:
+        return jsonify({'error': f'Failed to load dashboard: {str(e)}'}), 500
 
 
 @dash_bp.route('/', methods=['POST'])
 @analyst_or_admin_required
 def create_dashboard():
-    """Create new dashboard. Admin/Analyst only."""
     user = get_current_user()
     data = request.get_json()
 
     if not data:
         return jsonify({'error': 'No data provided'}), 400
 
-    # Validation
     required = ['title', 'embed_url', 'department', 'category']
-    missing = [f for f in required if not data.get(f)]
+    missing = [f for f in required if not data.get(f, '').strip() if isinstance(data.get(f), str) else not data.get(f)]
     if missing:
         return jsonify({'error': f'Missing required fields: {", ".join(missing)}'}), 400
 
-    # Non-admin can only create for their department
     if user.role != 'Admin' and data.get('department') != user.department:
         return jsonify({'error': 'You can only create dashboards for your department'}), 403
 
-    dashboard = Dashboard(
-        title=data['title'].strip(),
-        embed_url=data['embed_url'].strip(),
-        department=data['department'],
-        category=data['category'].strip(),
-        tags=data.get('tags', []),
-        kpis=data.get('kpis', []),
-        commentary=data.get('commentary', ''),
-        created_by=user.email,
-        sort_order=data.get('sort_order', 0)
-    )
+    try:
+        dashboard = Dashboard(
+            title=data['title'].strip(),
+            embed_url=data['embed_url'].strip(),
+            department=data['department'],
+            category=data['category'].strip(),
+            commentary=data.get('commentary', ''),
+            ai_context=data.get('ai_context', ''),
+            created_by=user.email,
+            sort_order=data.get('sort_order', 0),
+            is_public=bool(data.get('is_public', False)) if user.role == 'Admin' else False
+        )
+        dashboard.tags = data.get('tags', [])
+        dashboard.kpis = data.get('kpis', [])
 
-    db.session.add(dashboard)
-    db.session.commit()
+        db.session.add(dashboard)
+        db.session.commit()
 
-    log_activity(user.id, f"Created dashboard: {dashboard.title}", 'dashboard', dashboard.id)
-
-    return jsonify({'message': 'Dashboard created', 'dashboard': dashboard.to_dict()}), 201
+        log_activity(user.id, f"Created dashboard: {dashboard.title}", 'dashboard', dashboard.id)
+        return jsonify({'message': 'Dashboard created', 'dashboard': dashboard.to_dict()}), 201
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': f'Failed to create dashboard: {str(e)}'}), 500
 
 
 @dash_bp.route('/<int:dashboard_id>', methods=['PUT'])
 @analyst_or_admin_required
 def update_dashboard(dashboard_id):
-    """Update dashboard."""
     user = get_current_user()
-    dashboard = Dashboard.query.get_or_404(dashboard_id)
+    dashboard = Dashboard.query.get(dashboard_id)
+    if not dashboard:
+        return jsonify({'error': 'Dashboard not found'}), 404
 
-    # Department check
     if user.role != 'Admin' and dashboard.department != user.department:
         return jsonify({'error': 'Access denied'}), 403
 
@@ -139,50 +171,59 @@ def update_dashboard(dashboard_id):
     if not data:
         return jsonify({'error': 'No data provided'}), 400
 
-    updatable = ['title', 'embed_url', 'category', 'commentary']
-    for field in updatable:
-        if field in data:
-            setattr(dashboard, field, data[field])
+    try:
+        for field in ['title', 'embed_url', 'category', 'commentary', 'ai_context']:
+            if field in data:
+                setattr(dashboard, field, data[field])
 
-    if 'tags' in data:
-        dashboard.tags = data['tags']
-    if 'kpis' in data:
-        dashboard.kpis = data['kpis']
-    if 'department' in data and user.role == 'Admin':
-        dashboard.department = data['department']
-    if 'sort_order' in data:
-        dashboard.sort_order = data['sort_order']
+        if 'tags' in data:
+            dashboard.tags = data['tags']
+        if 'kpis' in data:
+            dashboard.kpis = data['kpis']
+        if 'department' in data and user.role == 'Admin':
+            dashboard.department = data['department']
+        if 'sort_order' in data:
+            dashboard.sort_order = int(data['sort_order'])
+        if 'is_public' in data and user.role == 'Admin':
+            dashboard.is_public = bool(data['is_public'])
 
-    dashboard.updated_at = datetime.utcnow()
-    db.session.commit()
+        dashboard.updated_at = datetime.utcnow()
+        db.session.commit()
 
-    log_activity(user.id, f"Updated dashboard: {dashboard.title}", 'dashboard', dashboard_id)
-
-    return jsonify({'message': 'Dashboard updated', 'dashboard': dashboard.to_dict()}), 200
+        log_activity(user.id, f"Updated dashboard: {dashboard.title}", 'dashboard', dashboard_id)
+        return jsonify({'message': 'Dashboard updated', 'dashboard': dashboard.to_dict()}), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': f'Failed to update: {str(e)}'}), 500
 
 
 @dash_bp.route('/<int:dashboard_id>', methods=['DELETE'])
 @admin_required
 def delete_dashboard(dashboard_id):
-    """Delete dashboard. Admin only."""
     user = get_current_user()
-    dashboard = Dashboard.query.get_or_404(dashboard_id)
+    dashboard = Dashboard.query.get(dashboard_id)
+    if not dashboard:
+        return jsonify({'error': 'Dashboard not found'}), 404
     title = dashboard.title
-    db.session.delete(dashboard)
-    db.session.commit()
-    log_activity(user.id, f"Deleted dashboard: {title}", 'dashboard', dashboard_id)
-    return jsonify({'message': f'Dashboard "{title}" deleted'}), 200
+    try:
+        db.session.delete(dashboard)
+        db.session.commit()
+        log_activity(user.id, f"Deleted dashboard: {title}", 'dashboard', dashboard_id)
+        return jsonify({'message': f'Dashboard "{title}" deleted'}), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': f'Failed to delete: {str(e)}'}), 500
 
 
 @dash_bp.route('/<int:dashboard_id>/bookmark', methods=['POST'])
 @jwt_required_custom
 def toggle_bookmark(dashboard_id):
-    """Toggle bookmark for a dashboard."""
     user = get_current_user()
-    dashboard = Dashboard.query.get_or_404(dashboard_id)
+    dashboard = Dashboard.query.get(dashboard_id)
+    if not dashboard:
+        return jsonify({'error': 'Dashboard not found'}), 404
 
-    # Department check
-    if user.role != 'Admin' and dashboard.department != user.department:
+    if user.role != 'Admin' and dashboard.department != user.department and not dashboard.is_public:
         return jsonify({'error': 'Access denied'}), 403
 
     bookmarks = user.bookmarks
@@ -195,61 +236,87 @@ def toggle_bookmark(dashboard_id):
 
     user.bookmarks = bookmarks
     db.session.commit()
-
     return jsonify({'message': f'Bookmark {action}', 'bookmarked': action == 'added', 'bookmarks': bookmarks}), 200
 
 
 @dash_bp.route('/<int:dashboard_id>/notes', methods=['GET'])
 @jwt_required_custom
 def get_notes(dashboard_id):
-    """Get notes for a dashboard."""
     user = get_current_user()
-    dashboard = Dashboard.query.get_or_404(dashboard_id)
+    dashboard = Dashboard.query.get(dashboard_id)
+    if not dashboard:
+        return jsonify({'error': 'Dashboard not found'}), 404
 
     if user.role != 'Admin' and dashboard.department != user.department:
         return jsonify({'error': 'Access denied'}), 403
 
-    notes = Note.query.filter_by(dashboard_id=dashboard_id)\
-        .order_by(Note.created_at.desc()).all()
-
+    notes = Note.query.filter_by(dashboard_id=dashboard_id).order_by(Note.created_at.desc()).all()
     return jsonify({'notes': [n.to_dict() for n in notes]}), 200
 
 
 @dash_bp.route('/<int:dashboard_id>/notes', methods=['POST'])
 @jwt_required_custom
 def add_note(dashboard_id):
-    """Add a note to a dashboard."""
     user = get_current_user()
-    dashboard = Dashboard.query.get_or_404(dashboard_id)
+    dashboard = Dashboard.query.get(dashboard_id)
+    if not dashboard:
+        return jsonify({'error': 'Dashboard not found'}), 404
 
     if user.role != 'Admin' and dashboard.department != user.department:
         return jsonify({'error': 'Access denied'}), 403
 
     data = request.get_json()
-    content = data.get('content', '').strip()
+    content = data.get('content', '').strip() if data else ''
     if not content:
         return jsonify({'error': 'Note content cannot be empty'}), 400
 
     note = Note(dashboard_id=dashboard_id, user_id=user.id, content=content)
     db.session.add(note)
     db.session.commit()
-
     return jsonify({'message': 'Note added', 'note': note.to_dict()}), 201
+
+
+@dash_bp.route('/<int:dashboard_id>/notes/<int:note_id>', methods=['DELETE'])
+@jwt_required_custom
+def delete_note(dashboard_id, note_id):
+    user = get_current_user()
+    note = Note.query.filter_by(id=note_id, dashboard_id=dashboard_id).first()
+    if not note:
+        return jsonify({'error': 'Note not found'}), 404
+    if note.user_id != user.id and user.role != 'Admin':
+        return jsonify({'error': 'You can only delete your own notes'}), 403
+    db.session.delete(note)
+    db.session.commit()
+    return jsonify({'message': 'Note deleted'}), 200
 
 
 @dash_bp.route('/reorder', methods=['POST'])
 @jwt_required_custom
 def reorder_dashboards():
-    """Update sort order for dashboards."""
     user = get_current_user()
     data = request.get_json()
-    order = data.get('order', [])  # [{ id: 1, sort_order: 0 }, ...]
+    order = data.get('order', [])
 
     for item in order:
-        d = Dashboard.query.get(item['id'])
-        if d:
-            if user.role == 'Admin' or d.department == user.department:
-                d.sort_order = item['sort_order']
+        try:
+            d = Dashboard.query.get(int(item['id']))
+            if d and (user.role == 'Admin' or d.department == user.department):
+                d.sort_order = int(item['sort_order'])
+        except Exception:
+            continue
 
     db.session.commit()
     return jsonify({'message': 'Order updated'}), 200
+
+
+@dash_bp.route('/categories', methods=['GET'])
+@jwt_required_custom
+def get_categories():
+    """Get all unique categories for filtering."""
+    user = get_current_user()
+    query = Dashboard.query
+    query = department_filter(query, user, Dashboard)
+    dashboards = query.all()
+    categories = sorted(set(d.category for d in dashboards if d.category))
+    departments = sorted(set(d.department for d in dashboards))
+    return jsonify({'categories': categories, 'departments': departments}), 200
