@@ -1,6 +1,8 @@
 """
 AI Insight Engine — SLMG BI Portal
-Supports: AI summaries, AI chat about dashboard data, rule-based fallback.
+Supports: AI summaries, AI chat about dashboard data,
+          uploaded CSV/Excel data analysis, charts & tables,
+          semantic model context.
 """
 
 import json
@@ -11,7 +13,7 @@ from services.kpi_service import enrich_kpis
 from services.swot_service import generate_swot, _fmt
 
 
-def _call_claude(messages: list, system: str = '', max_tokens: int = 800) -> str:
+def _call_claude(messages: list, system: str = '', max_tokens: int = 1000) -> str:
     """Call Anthropic Claude API and return raw text."""
     api_key = os.environ.get('ANTHROPIC_API_KEY', '')
     if not api_key:
@@ -61,15 +63,68 @@ def generate_ai_summary(dashboard_title: str, department: str, kpis: list, comme
     return _rule_based_summary(dashboard_title, department, enriched, swot, commentary)
 
 
-def generate_ai_chat_response(question: str, user_name: str, user_department: str,
-                               dashboards: list, conversation_history: list) -> str:
+def generate_ai_chat_response(
+    question: str,
+    user_name: str,
+    user_department: str,
+    dashboards: list,
+    conversation_history: list,
+    uploaded_data: dict = None,
+    semantic_model_url: str = ''
+) -> str:
     """
-    AI chat: answer questions about dashboard/KPI data.
-    dashboards: list of Dashboard model objects
-    conversation_history: list of {role, content} dicts
+    AI chat with full data analysis support.
+    - uploaded_data: {filename, rows (list of dicts), columns, total_rows}
+    - dashboards: list of Dashboard model objects
+    - Returns text answer, may include ```json{chart/table data}``` blocks
     """
-    # Build rich context about all available dashboards
-    context_parts = []
+
+    # ── Build uploaded data context ──────────────────────────────
+    uploaded_context = ''
+    if uploaded_data and uploaded_data.get('rows'):
+        rows = uploaded_data['rows']
+        cols = uploaded_data.get('columns', list(rows[0].keys()) if rows else [])
+        filename = uploaded_data.get('filename', 'uploaded_file')
+        total = uploaded_data.get('total_rows', len(rows))
+
+        # Column stats
+        col_stats = []
+        for col in cols[:15]:  # max 15 cols
+            values = [r.get(col, '') for r in rows if r.get(col, '') != '']
+            # Try numeric
+            nums = []
+            for v in values:
+                try:
+                    nums.append(float(str(v).replace(',', '')))
+                except:
+                    pass
+            if nums:
+                col_stats.append(f"  {col}: numeric, min={min(nums):.2f}, max={max(nums):.2f}, avg={sum(nums)/len(nums):.2f}, count={len(nums)}")
+            else:
+                unique_vals = list(set(str(v) for v in values[:20]))[:8]
+                col_stats.append(f"  {col}: text, unique_values={unique_vals[:5]}, count={len(values)}")
+
+        # Sample rows
+        sample_rows = []
+        for r in rows[:5]:
+            sample_rows.append(str({k: v for k, v in list(r.items())[:10]}))
+
+        uploaded_context = f"""
+UPLOADED DATASET: {filename}
+Total rows: {total} | Columns: {', '.join(cols[:15])}
+
+COLUMN STATISTICS:
+{chr(10).join(col_stats)}
+
+SAMPLE DATA (first 5 rows):
+{chr(10).join(sample_rows)}
+
+ALL DATA (first {min(len(rows), 100)} rows for analysis):
+{json.dumps(rows[:100], ensure_ascii=False)}
+"""
+
+    # ── Build dashboard context ──────────────────────────────────
+    dash_context_parts = []
     for d in dashboards:
         try:
             enriched = enrich_kpis(d.kpis)
@@ -87,65 +142,116 @@ def generate_ai_chat_response(question: str, user_name: str, user_department: st
                 f"trend: {trend.get('direction', 'N/A')} {trend.get('change_pct', 0):+.1f}%)"
             )
 
-        context_parts.append(
-            f"Dashboard: {d.title}\n"
-            f"Department: {d.department} | Category: {d.category}\n"
-            f"Embed URL: {d.embed_url}\n"
+        dash_context_parts.append(
+            f"Dashboard: {d.title} | Dept: {d.department} | Category: {d.category}\n"
             f"KPIs:\n" + ('\n'.join(kpi_lines) if kpi_lines else '  (No KPI data)') + '\n'
             f"Commentary: {d.commentary or 'None'}\n"
-            f"AI Context: {d.ai_context or 'None'}\n"
-            f"Tags: {', '.join(d.tags) if d.tags else 'None'}"
+            f"AI Context: {d.ai_context or 'None'}"
         )
 
-    full_context = '\n\n---\n\n'.join(context_parts) if context_parts else 'No dashboard data available.'
+    dash_context = '\n\n---\n\n'.join(dash_context_parts) if dash_context_parts else 'No dashboard data available.'
 
-    system_prompt = f"""You are SLMG BI Assistant, an expert business intelligence analyst for SLMG Beverages.
-You have access to the following dashboard data and KPI metrics. Answer questions precisely and helpfully.
+    # ── Semantic model context ───────────────────────────────────
+    semantic_context = ''
+    if semantic_model_url:
+        semantic_context = f"\nSEMANTIC MODEL URL: {semantic_model_url}\n(User has connected a semantic/data model at this URL for additional context)\n"
+
+    # ── System prompt ────────────────────────────────────────────
+    system_prompt = f"""You are SLMG BI Assistant, an expert business intelligence analyst and data scientist for SLMG Beverages.
 
 USER: {user_name} (Department: {user_department})
 
-AVAILABLE DASHBOARD DATA:
-{full_context}
+{f"UPLOADED DATA CONTEXT:{uploaded_context}" if uploaded_context else ""}
+{f"SEMANTIC MODEL:{semantic_context}" if semantic_context else ""}
+DASHBOARD DATA:
+{dash_context}
 
 INSTRUCTIONS:
-- Answer questions based ONLY on the data provided above
-- Be specific: reference actual KPI names, values, percentages, and trends
-- If data is insufficient, say so clearly  
-- For "what is" questions about dashboards: describe the content and KPIs
-- For performance questions: provide specific numbers and health status
-- For recommendations: base them on actual data gaps and trends
-- Keep answers concise but data-rich (2-4 sentences unless more detail needed)
-- Format numbers clearly (e.g., ₹4.8M, 87%, 32 days)
-- If asked about the embed URL or how to view a dashboard, provide the URL
+1. Answer questions using the data provided above
+2. When asked for charts/graphs, respond with a JSON block in this format:
+   ```json
+   {{"chart_type": "bar", "labels": ["A","B","C"], "values": [100,200,150], "title": "Chart Title"}}
+   ```
+   Supported chart_types: bar, pie, line (will render as bar)
+
+3. When asked for tables, respond with:
+   ```json
+   {{"table_headers": ["Col1","Col2"], "table_rows": [["val1","val2"],["val3","val4"]], "title": "Table Title"}}
+   ```
+
+4. For uploaded CSV/Excel data:
+   - Analyse the actual data rows provided
+   - Calculate stats, find trends, identify outliers
+   - Answer questions precisely with real numbers from the data
+
+5. Be specific with numbers — reference actual values from data
+6. Format large numbers clearly (₹4.8M, 87%, 32 days)
+7. Hindi/English mix is fine — match the user's language style
+8. If asked "graph banao" or "chart dikhao" — always return chart JSON
+9. If asked "table banao" or "summary table" — always return table JSON
 """
 
-    # Build messages array with history
     messages = []
-    for h in conversation_history[-10:]:  # Last 10 messages for context
+    for h in conversation_history[-8:]:
         if h.get('role') in ('user', 'assistant') and h.get('content'):
             messages.append({'role': h['role'], 'content': str(h['content'])})
-
     messages.append({'role': 'user', 'content': question})
 
     api_key = os.environ.get('ANTHROPIC_API_KEY', '')
     if api_key:
         try:
-            return _call_claude(messages, system=system_prompt, max_tokens=600)
+            return _call_claude(messages, system=system_prompt, max_tokens=1000)
         except Exception as e:
             print(f'AI chat error: {e}')
 
-    # Rule-based fallback
-    return _rule_based_chat(question, dashboards, context_parts)
+    # ── Rule-based fallback ──────────────────────────────────────
+    return _rule_based_chat_with_data(question, dashboards, uploaded_data)
 
 
-def _rule_based_chat(question: str, dashboards: list, context_parts: list) -> str:
-    """Simple rule-based fallback when no API key."""
+def _rule_based_chat_with_data(question: str, dashboards: list, uploaded_data: dict = None) -> str:
+    """Rule-based fallback when no API key."""
     q = question.lower()
 
-    if not dashboards:
-        return "No dashboard data is available to answer your question. Please add dashboards with KPI data first."
+    # Uploaded data analysis
+    if uploaded_data and uploaded_data.get('rows'):
+        rows = uploaded_data['rows']
+        cols = uploaded_data.get('columns', list(rows[0].keys()) if rows else [])
+        filename = uploaded_data.get('filename', 'file')
 
-    # Identify relevant dashboard
+        if any(w in q for w in ['summary', 'overview', 'kitne', 'total', 'count']):
+            return (f"**{filename}** mein {len(rows)} rows aur {len(cols)} columns hain.\n\n"
+                    f"Columns: {', '.join(cols[:10])}\n\n"
+                    f"Pehle 3 rows:\n" +
+                    '\n'.join([str({k: v for k, v in list(r.items())[:5]}) for r in rows[:3]]))
+
+        if any(w in q for w in ['chart', 'graph', 'bar', 'plot', 'dikhao']):
+            # Try to make a simple bar chart from first numeric column grouped by first text column
+            num_cols = []
+            for col in cols:
+                try:
+                    float(str(rows[0].get(col, '')).replace(',', ''))
+                    num_cols.append(col)
+                except:
+                    pass
+            if num_cols and cols:
+                label_col = cols[0]
+                val_col = num_cols[0]
+                labels = [str(r.get(label_col, ''))[:20] for r in rows[:8]]
+                values = []
+                for r in rows[:8]:
+                    try:
+                        values.append(float(str(r.get(val_col, 0)).replace(',', '')))
+                    except:
+                        values.append(0)
+                chart_json = json.dumps({"chart_type": "bar", "labels": labels, "values": values, "title": f"{val_col} by {label_col}"})
+                return f"Yeh raha **{val_col}** ka chart:\n\n```json\n{chart_json}\n```"
+
+        return f"**{filename}** uploaded hai ({len(rows)} rows). ANTHROPIC_API_KEY set karo detailed analysis ke liye."
+
+    # Dashboard fallback
+    if not dashboards:
+        return "Koi dashboard data available nahi hai. Pehle koi dashboard add karo ya CSV file upload karo."
+
     relevant = None
     for d in dashboards:
         if d.title.lower() in q or d.department.lower() in q:
@@ -158,50 +264,10 @@ def _rule_based_chat(question: str, dashboards: list, context_parts: list) -> st
     except Exception:
         enriched = []
 
-    if any(w in q for w in ['worst', 'risk', 'critical', 'problem', 'issue', 'bad']):
-        reds = [k for k in enriched if k.get('health', {}).get('status') == 'RED']
-        if reds:
-            worst = min(reds, key=lambda x: x.get('health', {}).get('pct', 100))
-            return (f"The highest-risk KPI in {target.title} is **{worst['name']}** — "
-                    f"currently at {worst.get('health', {}).get('pct', 0):.1f}% of target "
-                    f"({_fmt(worst.get('value', 0))} vs target {_fmt(worst.get('target', 0))}). "
-                    f"Trend: {worst.get('trend', {}).get('direction', 'N/A')} "
-                    f"({worst.get('trend', {}).get('change_pct', 0):+.1f}%).")
-        return f"No critical KPIs found in {target.title} — all KPIs are performing at or near target."
-
-    if any(w in q for w in ['best', 'top', 'highest', 'performing well', 'green']):
-        greens = [k for k in enriched if k.get('health', {}).get('status') == 'GREEN']
-        if greens:
-            best = max(greens, key=lambda x: x.get('health', {}).get('pct', 0))
-            return (f"The best performing KPI in {target.title} is **{best['name']}** — "
-                    f"at {best.get('health', {}).get('pct', 0):.1f}% of target "
-                    f"({_fmt(best.get('value', 0))} vs target {_fmt(best.get('target', 0))}).")
-        return f"No KPIs in {target.title} are currently meeting their targets."
-
-    if any(w in q for w in ['how many', 'count', 'total', 'summary']):
-        green = sum(1 for k in enriched if k.get('health', {}).get('status') == 'GREEN')
-        yellow = sum(1 for k in enriched if k.get('health', {}).get('status') == 'YELLOW')
-        red = sum(1 for k in enriched if k.get('health', {}).get('status') == 'RED')
-        return (f"**{target.title}** has {len(enriched)} KPIs: "
-                f"{green} on target (green), {yellow} near target (yellow), {red} below target (red). "
-                f"There are {len(dashboards)} total dashboards accessible to you.")
-
-    if any(w in q for w in ['trend', 'improving', 'declining', 'up', 'down']):
-        improving = [k for k in enriched if k.get('trend', {}).get('direction') == 'UP']
-        declining = [k for k in enriched if k.get('trend', {}).get('direction') == 'DOWN']
-        parts = []
-        if improving:
-            parts.append(f"{len(improving)} improving: {', '.join(k['name'] for k in improving[:3])}")
-        if declining:
-            parts.append(f"{len(declining)} declining: {', '.join(k['name'] for k in declining[:3])}")
-        return f"In {target.title}: " + (' | '.join(parts) if parts else "All KPIs are stable with no significant trend changes.")
-
-    # Default: general summary
     green = sum(1 for k in enriched if k.get('health', {}).get('status') == 'GREEN')
-    return (f"**{target.title}** ({target.department} dept): {len(enriched)} KPIs tracked, "
-            f"{green} of {len(enriched)} are on target. "
-            f"Commentary: {target.commentary or 'No commentary added.'} "
-            f"For more specific insights, please ask about specific KPIs, trends, or risk areas.")
+    return (f"**{target.title}** ({target.department}): {len(enriched)} KPIs tracked, "
+            f"{green}/{len(enriched)} on target. "
+            f"Better insights ke liye ANTHROPIC_API_KEY set karo.")
 
 
 def _call_anthropic_summary(api_key, title, department, kpis, swot, commentary):
@@ -212,27 +278,24 @@ def _call_anthropic_summary(api_key, title, department, kpis, swot, commentary):
         for k in kpis
     ]) if kpis else "No KPI data available."
 
-    prompt = f"""You are a senior BI analyst at SLMG Beverages. Analyze this real KPI data and provide a JSON executive brief.
+    prompt = f"""You are a senior BI analyst at SLMG Beverages. Analyze this KPI data and return a JSON executive brief.
 
-Dashboard: {title}
-Department: {department}
-
+Dashboard: {title} | Department: {department}
 KPI Performance:
 {kpi_data}
-
 Management Commentary: {commentary or 'None'}
 
 Return ONLY valid JSON with these exact keys:
 {{
-  "executive_summary": "2-3 sentences referencing actual numbers",
-  "risk_analysis": "2-3 sentences with specific KPI names and values",
-  "strategic_recommendation": "2-3 actionable recommendations from the data",
+  "executive_summary": "2-3 sentences with actual numbers",
+  "risk_analysis": "2-3 sentences with specific KPI names",
+  "strategic_recommendation": "2-3 actionable items",
   "overall_rating": "Excellent|Good|Moderate|Critical",
-  "priority_action": "Single most important action this week"
+  "priority_action": "Single most important action"
 }}"""
 
     try:
-        text = _call_claude([{'role': 'user', 'content': prompt}], max_tokens=800)
+        text = _call_claude([{'role': 'user', 'content': prompt}], max_tokens=600)
         text = text.strip()
         if text.startswith('```'):
             text = text.split('```')[1]

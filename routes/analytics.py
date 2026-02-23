@@ -1,5 +1,5 @@
 """
-Analytics Routes — KPI, SWOT, AI Insights, AI Chat
+Analytics Routes — KPI, SWOT, AI Insights, AI Chat (with file data support)
 """
 
 from flask import Blueprint, request, jsonify
@@ -29,7 +29,7 @@ def get_kpis(dashboard_id):
         return jsonify({'error': 'Dashboard not found'}), 404
 
     if not _check_dashboard_access(user, dashboard):
-        return jsonify({'error': 'Access denied — department restriction'}), 403
+        return jsonify({'error': 'Access denied'}), 403
 
     try:
         summary = get_dashboard_kpi_summary(dashboard.kpis)
@@ -93,7 +93,12 @@ def get_ai_summary(dashboard_id):
 @analytics_bp.route('/ai-chat', methods=['POST'])
 @jwt_required_custom
 def ai_chat():
-    """AI chat — user asks questions about dashboard data."""
+    """
+    AI chat — supports:
+    1. Dashboard KPI data
+    2. User-uploaded CSV/Excel data (uploaded_data in payload)
+    3. Semantic model URL
+    """
     user = get_current_user()
     if not user:
         return jsonify({'error': 'Unauthorized'}), 401
@@ -103,8 +108,10 @@ def ai_chat():
         return jsonify({'error': 'No data provided'}), 400
 
     question = data.get('question', '').strip()
-    dashboard_id = data.get('dashboard_id')  # Optional — can chat about all dashboards
+    dashboard_id = data.get('dashboard_id')
     conversation_history = data.get('history', [])
+    uploaded_data = data.get('uploaded_data')        # {filename, rows, columns, total_rows}
+    semantic_model_url = data.get('semantic_model_url', '')
 
     if not question:
         return jsonify({'error': 'Question is required'}), 400
@@ -119,7 +126,6 @@ def ai_chat():
         except Exception:
             pass
     else:
-        # Get all accessible dashboards
         from middleware.auth_middleware import department_filter
         query = Dashboard.query
         query = department_filter(query, user, Dashboard)
@@ -131,9 +137,17 @@ def ai_chat():
             user_name=user.name,
             user_department=user.department,
             dashboards=dashboards_context,
-            conversation_history=conversation_history
+            conversation_history=conversation_history,
+            uploaded_data=uploaded_data,
+            semantic_model_url=semantic_model_url
         )
-        return jsonify({'answer': response, 'sources': [d.title for d in dashboards_context]}), 200
+
+        sources = []
+        if uploaded_data:
+            sources.append(f"📁 {uploaded_data.get('filename', 'Uploaded file')}")
+        sources += [d.title for d in dashboards_context]
+
+        return jsonify({'answer': response, 'sources': sources}), 200
     except Exception as e:
         return jsonify({'error': f'AI chat failed: {str(e)}'}), 500
 

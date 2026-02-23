@@ -262,14 +262,33 @@ h1,h2,h3,.bebas { font-family: 'Bebas Neue', sans-serif; letter-spacing: .04em; 
 .dark .dept-Operations { background: #450A0A; color: #FCA5A5; }
 
 /* === HAMBURGER === */
-#sidebarToggle { display: none; }
+#sidebarToggle { display: flex; }
 @media (max-width: 768px) {
-  #sidebarToggle { display: flex; }
   #sidebar { transform: translateX(-100%); }
   #sidebar.open { transform: translateX(0); }
   #mainContent { margin-left: 0 !important; }
   .form-row { grid-template-columns: 1fr; }
 }
+
+/* === SIDEBAR COLLAPSE (desktop) === */
+#sidebar { transition: width .25s ease, transform .25s ease; }
+#sidebar.collapsed { width: 60px; overflow: hidden; }
+#sidebar.collapsed .sidebar-text { display: none !important; }
+#sidebar.collapsed .s-logo { padding: 20px 10px 14px; }
+#sidebar.collapsed .s-logo img { height: 30px; }
+#sidebar.collapsed .nav-item { padding: 12px; justify-content: center; }
+#sidebar.collapsed .nav-item .icon { min-width: unset; font-size: 18px; }
+#sidebar.collapsed #sbAvatar { margin: 0 auto; }
+#sidebar.collapsed #sbName, #sidebar.collapsed #sbRole { display: none; }
+#sidebar.collapsed .s-label { display: none; }
+#sidebar.collapsed #collapseToggle { transform: rotate(180deg); }
+#mainContent.collapsed-sidebar { margin-left: 60px; }
+.collapse-btn {
+  background: none; border: none; cursor: pointer;
+  color: #6B7280; font-size: 16px; padding: 4px 8px;
+  border-radius: 6px; transition: all .15s; line-height: 1;
+}
+.collapse-btn:hover { background: #252525; color: white; }
 
 /* === HEADER WAVE === */
 .page-header {
@@ -407,10 +426,13 @@ h1,h2,h3,.bebas { font-family: 'Bebas Neue', sans-serif; letter-spacing: .04em; 
 
   <!-- SIDEBAR -->
   <nav id="sidebar">
-    <!-- Logo -->
-    <div class="s-logo">
-      <img id="sidebarLogo" src="" alt="SLMG" style="height:42px;">
-      <div style="font-size:9px;color:#555;letter-spacing:.12em;text-transform:uppercase;margin-top:4px;">Enterprise BI Portal</div>
+    <!-- Logo + Collapse Button -->
+    <div class="s-logo" style="display:flex;align-items:center;justify-content:space-between;">
+      <div>
+        <img id="sidebarLogo" src="" alt="SLMG" style="height:42px;">
+        <div class="sidebar-text" style="font-size:9px;color:#555;letter-spacing:.12em;text-transform:uppercase;margin-top:4px;">Enterprise BI Portal</div>
+      </div>
+      <button id="collapseToggle" class="collapse-btn" title="Collapse Sidebar" onclick="toggleSidebarCollapse()">◀</button>
     </div>
 
     <!-- User badge -->
@@ -426,38 +448,34 @@ h1,h2,h3,.bebas { font-family: 'Bebas Neue', sans-serif; letter-spacing: .04em; 
 
     <!-- Navigation -->
     <div class="s-section" style="flex:1;">
-      <div class="s-label">Navigation</div>
+      <div class="s-label sidebar-text">Navigation</div>
       <div class="nav-item active" data-page="overview" onclick="navTo('overview')">
-        <span class="icon">📊</span><span>Overview</span>
+        <span class="icon">📊</span><span class="sidebar-text">Overview</span>
       </div>
       <div class="nav-item" data-page="dashboards" onclick="navTo('dashboards')">
-        <span class="icon">🗂️</span><span>Dashboards</span>
-        <span class="badge" id="dashCount">0</span>
+        <span class="icon">🗂️</span><span class="sidebar-text">Dashboards</span>
+        <span class="badge sidebar-text" id="dashCount">0</span>
       </div>
       <div class="nav-item" data-page="analytics" onclick="navTo('analytics')">
-        <span class="icon">🧠</span><span>Analytics & AI</span>
-      </div>
-      <div class="nav-item" data-page="compare" onclick="navTo('compare')">
-        <span class="icon">⚖️</span><span>Compare Mode</span>
-      </div>
-      <div class="nav-item" data-page="bookmarks" onclick="navTo('bookmarks')">
-        <span class="icon">🔖</span><span>Bookmarks</span>
+        <span class="icon">🧠</span><span class="sidebar-text">Analytics & AI</span>
       </div>
       <div class="nav-item" data-page="ai-chat" onclick="navTo('ai-chat')">
-        <span class="icon">💬</span><span>AI Assistant</span>
-        <span style="margin-left:auto;font-size:9px;background:linear-gradient(135deg,#7C3AED,#EC4899);color:white;padding:2px 6px;border-radius:99px;font-weight:700;">NEW</span>
+        <span class="icon">💬</span><span class="sidebar-text">AI Assistant</span>
+        <span class="sidebar-text" style="margin-left:auto;font-size:9px;background:linear-gradient(135deg,#7C3AED,#EC4899);color:white;padding:2px 6px;border-radius:99px;font-weight:700;">AI</span>
       </div>
-
-      <div class="nav-item" data-page="ai-chat" onclick="navTo('ai-chat')">
-        <span class="icon">💬</span><span>AI Assistant</span>
-        <span style="margin-left:auto;font-size:9px;background:linear-gradient(135deg,#7C3AED,#EC4899);color:white;padding:2px 6px;border-radius:99px;font-weight:700;">NEW</span>
+      <!-- Admin-only menu items -->
+      <div class="s-label admin-only sidebar-text" style="margin-top:8px;">Admin Tools</div>
+      <div class="nav-item admin-only" data-page="compare" onclick="navTo('compare')">
+        <span class="icon">⚖️</span><span class="sidebar-text">Compare Mode</span>
       </div>
-      <div class="s-label" style="margin-top:8px;">Admin</div>
+      <div class="nav-item admin-only" data-page="bookmarks" onclick="navTo('bookmarks')">
+        <span class="icon">🔖</span><span class="sidebar-text">Bookmarks</span>
+      </div>
       <div class="nav-item admin-only" data-page="users" onclick="navTo('users')">
-        <span class="icon">👥</span><span>User Management</span>
+        <span class="icon">👥</span><span class="sidebar-text">User Management</span>
       </div>
       <div class="nav-item admin-only" data-page="activity" onclick="navTo('activity')">
-        <span class="icon">📋</span><span>Activity Log</span>
+        <span class="icon">📋</span><span class="sidebar-text">Activity Log</span>
       </div>
     </div>
 
@@ -714,50 +732,107 @@ h1,h2,h3,.bebas { font-family: 'Bebas Neue', sans-serif; letter-spacing: .04em; 
 <!-- ===== AI ASSISTANT PAGE ===== -->
 <div id="page-ai-chat" class="page">
   <div class="page-header" style="border-radius:14px;margin-bottom:24px;">
-    <div class="wave-text">AI Assistant</div>
-    <h1 style="font-size:28px;margin-top:2px;">Ask Anything About Your Data 🤖</h1>
-    <p style="color:rgba(255,255,255,.75);font-size:13px;margin-top:4px;">Powered by real KPI data from your dashboards</p>
+    <div class="wave-text">AI Data Analyst</div>
+    <h1 style="font-size:28px;margin-top:2px;">AI Business Intelligence Assistant 🤖</h1>
+    <p style="color:rgba(255,255,255,.75);font-size:13px;margin-top:4px;">Apna dataset/CSV/Excel upload karo — AI khud analyse karke graphs, tables aur insights dega</p>
   </div>
-  <div style="display:grid;grid-template-columns:1fr 280px;gap:20px;">
+
+  <div style="display:grid;grid-template-columns:1fr 300px;gap:20px;">
+    <!-- MAIN CHAT AREA -->
     <div>
-      <div style="display:flex;gap:10px;margin-bottom:12px;align-items:flex-end;">
-        <div style="flex:1;">
-          <label class="form-label">Focus on Dashboard (optional)</label>
-          <select id="chatDashSelect" class="form-input" style="font-size:13px;">
-            <option value="">All Dashboards</option>
+      <!-- Data Source Selector -->
+      <div class="card" style="margin-bottom:16px;padding:16px 20px;">
+        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+          <div style="font-size:13px;font-weight:700;color:var(--text);">📊 Data Source:</div>
+          <!-- Dashboard Select -->
+          <select id="chatDashSelect" class="form-input" style="flex:1;min-width:200px;max-width:280px;font-size:13px;">
+            <option value="">🗂️ All Dashboards</option>
           </select>
+          <!-- OR -->
+          <span style="font-size:12px;color:var(--text3);font-weight:600;">YA</span>
+          <!-- File Upload -->
+          <label style="cursor:pointer;">
+            <input type="file" id="dataFileInput" accept=".csv,.xlsx,.xls,.json,.txt" style="display:none;" onchange="handleDataFileUpload(event)">
+            <span class="btn btn-ghost btn-sm" onclick="document.getElementById('dataFileInput').click()">
+              📁 CSV/Excel Upload
+            </span>
+          </label>
+          <!-- Semantic Model -->
+          <input type="text" id="semanticModelInput" class="form-input" style="flex:1;min-width:150px;max-width:220px;font-size:12px;" placeholder="🔗 Semantic model URL (optional)">
+          <button class="btn btn-ghost btn-sm" onclick="clearChat()">🗑 Clear</button>
         </div>
-        <button class="btn btn-ghost btn-sm" onclick="clearChat()">🗑 Clear</button>
+        <!-- Uploaded file indicator -->
+        <div id="uploadedFileInfo" style="display:none;margin-top:10px;padding:8px 12px;background:rgba(22,163,74,.1);border:1px solid rgba(22,163,74,.3);border-radius:8px;font-size:12px;color:var(--green);display:flex;align-items:center;gap:8px;">
+          <span>📄</span><span id="uploadedFileName"></span>
+          <span id="uploadedFileRows" style="color:var(--text3);"></span>
+          <button onclick="clearUploadedData()" style="margin-left:auto;background:none;border:none;cursor:pointer;color:#DC2626;font-size:14px;">✕</button>
+        </div>
       </div>
-      <div class="chat-container">
-        <div id="chatSuggestions" style="display:flex;flex-wrap:wrap;gap:6px;padding:10px 16px;border-bottom:1px solid var(--border);">
-          <span class="chat-chip" onclick="sendChatSuggestion(this)">What are the worst performing KPIs?</span>
-          <span class="chat-chip" onclick="sendChatSuggestion(this)">Which department is performing best?</span>
-          <span class="chat-chip" onclick="sendChatSuggestion(this)">What are key risks this period?</span>
-          <span class="chat-chip" onclick="sendChatSuggestion(this)">Summarize all dashboard performance</span>
-          <span class="chat-chip" onclick="sendChatSuggestion(this)">What KPIs are improving?</span>
-          <span class="chat-chip" onclick="sendChatSuggestion(this)">Show me the Finance KPIs</span>
+
+      <!-- Chat Container -->
+      <div class="chat-container" style="height:520px;">
+        <!-- Suggested Questions -->
+        <div id="chatSuggestions" style="display:flex;flex-wrap:wrap;gap:6px;padding:10px 16px;border-bottom:1px solid var(--border);background:var(--surface2);">
+          <span class="chat-chip" onclick="sendChatSuggestion(this)">📈 Sales trend dikhao</span>
+          <span class="chat-chip" onclick="sendChatSuggestion(this)">🏆 Top performing products</span>
+          <span class="chat-chip" onclick="sendChatSuggestion(this)">📊 Department wise bar chart banao</span>
+          <span class="chat-chip" onclick="sendChatSuggestion(this)">⚠️ Risks aur warnings kya hain?</span>
+          <span class="chat-chip" onclick="sendChatSuggestion(this)">📋 Data ka summary table banao</span>
+          <span class="chat-chip" onclick="sendChatSuggestion(this)">💡 Key insights bolo</span>
         </div>
+        <!-- Messages -->
         <div class="chat-messages" id="chatMessages">
-          <div class="chat-msg assistant">👋 Hi! I'm your SLMG BI Assistant. Ask me anything about your dashboards, KPIs, performance trends, or specific metrics. I'll answer based on your real data.</div>
+          <div class="chat-msg assistant" style="max-width:100%;">
+            <div style="font-weight:700;margin-bottom:8px;">👋 Namaste! Main SLMG BI Assistant hoon.</div>
+            <div style="font-size:12px;line-height:1.7;color:var(--text2);">
+              Mujhe kuch bhi puchh sakte ho:<br>
+              • 📁 <strong>CSV/Excel upload karo</strong> — main khud data read karke answer dunga<br>
+              • 📊 <strong>Charts/Graphs maango</strong> — bar chart, line chart, pie chart<br>
+              • 📋 <strong>Tables maango</strong> — filtered, sorted data table<br>
+              • 🔗 <strong>Dashboard se puchho</strong> — upar dropdown mein select karo<br>
+              • 💡 <strong>Insights maango</strong> — trends, risks, recommendations
+            </div>
+          </div>
         </div>
+        <!-- Input Row -->
         <div class="chat-input-row">
-          <input type="text" class="chat-input" id="chatInput" placeholder="Ask about your data..." onkeydown="if(event.key==='Enter')sendChat()">
-          <button class="btn btn-red" onclick="sendChat()" style="padding:9px 16px;">
-            <span id="chatBtnText">Send</span>
+          <input type="text" class="chat-input" id="chatInput" placeholder="Apna sawaal puchho... (e.g. 'April ka revenue chart banao')" onkeydown="if(event.key==='Enter')sendChat()">
+          <button class="btn btn-red" onclick="sendChat()" style="padding:9px 16px;white-space:nowrap;">
+            <span id="chatBtnText">Send ↵</span>
             <span id="chatSpinner" class="spinner" style="display:none;"></span>
           </button>
         </div>
       </div>
     </div>
-    <div>
-      <div class="card" style="margin-bottom:16px;">
-        <div class="card-header"><strong>Quick Insights</strong></div>
-        <div class="card-body" id="quickInsightsPanel"><p style="font-size:12px;color:var(--text3);">Insights appear as you chat</p></div>
-      </div>
+
+    <!-- RIGHT PANEL -->
+    <div style="display:flex;flex-direction:column;gap:16px;">
+      <!-- Data Preview -->
       <div class="card">
-        <div class="card-header"><strong>Data Sources</strong></div>
-        <div class="card-body" id="chatDataSources"><p style="font-size:12px;color:var(--text3);">Loading...</p></div>
+        <div class="card-header" style="padding:12px 16px;">
+          <strong style="font-size:13px;">📊 Data Preview</strong>
+        </div>
+        <div class="card-body" style="padding:12px;max-height:200px;overflow:auto;" id="dataPreviewPanel">
+          <p style="font-size:12px;color:var(--text3);">Upload a file or select a dashboard to see data preview</p>
+        </div>
+      </div>
+      <!-- Quick Insights -->
+      <div class="card">
+        <div class="card-header" style="padding:12px 16px;">
+          <strong style="font-size:13px;">💡 Quick Insights</strong>
+        </div>
+        <div class="card-body" style="padding:12px;" id="quickInsightsPanel">
+          <p style="font-size:12px;color:var(--text3);">Insights appear as you chat</p>
+        </div>
+      </div>
+      <!-- Connected Sources -->
+      <div class="card">
+        <div class="card-header" style="padding:12px 16px;">
+          <strong style="font-size:13px;">🔗 Data Sources</strong>
+        </div>
+        <div class="card-body" style="padding:12px;" id="chatDataSources">
+          <p style="font-size:12px;color:var(--text3);">Loading...</p>
+        </div>
       </div>
     </div>
   </div>
@@ -860,6 +935,9 @@ h1,h2,h3,.bebas { font-family: 'Bebas Neue', sans-serif; letter-spacing: .04em; 
       <button class="btn btn-icon btn-ghost" onclick="closeModal('addDashModal')">✕</button>
     </div>
     <div class="modal-body">
+      <div id="dashModalTitle2" style="font-size:12px;color:var(--text3);margin-bottom:16px;padding:10px 14px;background:var(--surface2);border-radius:8px;border-left:3px solid var(--red);">
+        💡 KPI data ab AI chatbot se connect hoga — sirf embed URL aur details bharo
+      </div>
       <div class="form-row">
         <div class="form-group">
           <label class="form-label">Dashboard Title *</label>
@@ -876,7 +954,7 @@ h1,h2,h3,.bebas { font-family: 'Bebas Neue', sans-serif; letter-spacing: .04em; 
         </div>
       </div>
       <div class="form-group">
-        <label class="form-label">Power BI Embed URL *</label>
+        <label class="form-label">Power BI / Report Embed URL *</label>
         <input type="url" id="newDashUrl" class="form-input" placeholder="https://app.powerbi.com/view?r=...">
       </div>
       <div class="form-row">
@@ -895,17 +973,14 @@ h1,h2,h3,.bebas { font-family: 'Bebas Neue', sans-serif; letter-spacing: .04em; 
         </div>
       </div>
       <div class="form-group">
-        <label class="form-label">Commentary</label>
-        <textarea id="newDashCommentary" class="form-input" rows="3" style="resize:vertical;" placeholder="Management commentary..."></textarea>
+        <label class="form-label">Management Commentary</label>
+        <textarea id="newDashCommentary" class="form-input" rows="2" style="resize:vertical;" placeholder="Key highlights, context..."></textarea>
       </div>
-      <!-- KPIs section -->
-      <div style="border:1px solid var(--border);border-radius:10px;padding:16px;background:var(--surface2);">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
-          <label class="form-label" style="margin:0;">KPI Targets</label>
-          <button class="btn btn-ghost btn-sm" onclick="addKPIRow()">+ Add KPI</button>
-        </div>
-        <div id="kpiRows" style="display:flex;flex-direction:column;gap:8px;"></div>
+      <div class="form-group">
+        <label class="form-label">AI Context <span style="font-weight:400;color:var(--text3);">(AI ko kya jaanna chahiye is dashboard ke baare mein)</span></label>
+        <textarea id="newDashAiContext" class="form-input" rows="3" style="resize:vertical;" placeholder="e.g. Ye Finance department ka Q1 2025 report hai. Revenue, EBITDA, aur cost tracking..."></textarea>
       </div>
+      <input type="hidden" id="editDashId">
     </div>
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('addDashModal')">Cancel</button>
@@ -1142,10 +1217,20 @@ function applyAdminVisibility() {
   document.querySelectorAll('.admin-only').forEach(el => {
     el.style.display = isAdmin ? '' : 'none';
   });
+  // Non-admin: restrict navigation attempts to admin pages
+  if (!isAdmin) {
+    STATE._allowedPages = ['overview', 'dashboards', 'analytics', 'ai-chat', 'detail', 'profile'];
+  } else {
+    STATE._allowedPages = null; // all pages
+  }
 }
 
 // ── Navigation ───────────────────────────────────────────────
 function navTo(page) {
+  // Block non-admin from admin pages
+  if (STATE._allowedPages && !STATE._allowedPages.includes(page)) {
+    toast('Access denied', 'error'); return;
+  }
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   const pg = document.getElementById(`page-${page}`);
@@ -1164,8 +1249,33 @@ function navTo(page) {
 }
 
 function toggleSidebar() {
+  // Mobile: toggle open
   document.getElementById('sidebar').classList.toggle('open');
 }
+
+function toggleSidebarCollapse() {
+  const sidebar = document.getElementById('sidebar');
+  const main = document.getElementById('mainContent');
+  const collapsed = sidebar.classList.toggle('collapsed');
+  if (collapsed) {
+    main.classList.add('collapsed-sidebar');
+    main.style.marginLeft = '60px';
+  } else {
+    main.classList.remove('collapsed-sidebar');
+    main.style.marginLeft = '';
+  }
+  localStorage.setItem('slmg_sidebar_collapsed', collapsed ? '1' : '0');
+}
+
+// Restore sidebar state
+(function restoreSidebar() {
+  if (localStorage.getItem('slmg_sidebar_collapsed') === '1') {
+    const sidebar = document.getElementById('sidebar');
+    const main = document.getElementById('mainContent');
+    if (sidebar) sidebar.classList.add('collapsed');
+    if (main) { main.classList.add('collapsed-sidebar'); main.style.marginLeft = '60px'; }
+  }
+})();
 
 // ── Dashboards ───────────────────────────────────────────────
 function renderDashboards() {
@@ -1721,78 +1831,57 @@ function openAddDashModal() {
   } else {
     document.getElementById('newDashDept').innerHTML = `<option value="${STATE.user.department}">${STATE.user.department}</option>`;
   }
-  document.getElementById('kpiRows').innerHTML = '';
-  addKPIRow(); // default one row
+  // Reset form
+  ['newDashTitle','newDashUrl','newDashTags','newDashCommentary','newDashAiContext'].forEach(id => {
+    const el = document.getElementById(id); if(el) el.value = '';
+  });
+  const eid = document.getElementById('editDashId'); if(eid) eid.value = '';
+  const mh = document.getElementById('dashModalTitle');
+  if(mh) mh.textContent = 'Add New Dashboard';
+  const sb = document.getElementById('saveDashText');
+  if(sb) sb.textContent = 'Create Dashboard';
   openModal('addDashModal');
 }
 
-function addKPIRow() {
-  const container = document.getElementById('kpiRows');
-  const idx = container.children.length;
-  const row = document.createElement('div');
-  row.style.cssText = 'display:grid;grid-template-columns:2fr 1fr 1fr 1fr auto;gap:8px;align-items:center;';
-  row.innerHTML = `
-    <input type="text" class="form-input" placeholder="KPI Name" style="padding:7px 10px;font-size:12px;" data-kpi="name">
-    <input type="number" class="form-input" placeholder="Value" style="padding:7px 10px;font-size:12px;" data-kpi="value">
-    <input type="number" class="form-input" placeholder="Target" style="padding:7px 10px;font-size:12px;" data-kpi="target">
-    <input type="number" class="form-input" placeholder="Previous" style="padding:7px 10px;font-size:12px;" data-kpi="previous">
-    <button class="btn btn-ghost btn-sm" style="padding:6px 10px;color:#DC2626;" onclick="this.parentElement.remove()">✕</button>`;
-  container.appendChild(row);
-}
+// addKPIRow removed — KPI system replaced by AI data analysis
 
 async function saveDashboard() {
   const title = document.getElementById('newDashTitle').value.trim();
   const url = document.getElementById('newDashUrl').value.trim();
   const dept = document.getElementById('newDashDept').value;
   const cat = document.getElementById('newDashCat').value;
-  const commentary = document.getElementById('newDashCommentary').value.trim();
-  const tagsRaw = document.getElementById('newDashTags').value;
+  const commentary = document.getElementById('newDashCommentary')?.value.trim() || '';
+  const aiContext = document.getElementById('newDashAiContext')?.value.trim() || '';
+  const tagsRaw = document.getElementById('newDashTags')?.value || '';
   const tags = tagsRaw ? tagsRaw.split(',').map(t => t.trim()).filter(Boolean) : [];
+  const editId = document.getElementById('editDashId')?.value || '';
 
   if (!title) { toast('Dashboard title is required', 'warning'); return; }
   if (!url) { toast('Embed URL is required', 'warning'); return; }
   if (!dept) { toast('Department is required', 'warning'); return; }
 
-  // Collect KPIs — all fields optional
-  const kpis = [];
-  document.querySelectorAll('#kpiRows > div').forEach(row => {
-    const nameEl = row.querySelector('[data-kpi="name"]');
-    const valueEl = row.querySelector('[data-kpi="value"]');
-    const targetEl = row.querySelector('[data-kpi="target"]');
-    const prevEl = row.querySelector('[data-kpi="previous"]');
-    const name = nameEl ? nameEl.value.trim() : '';
-    const value = valueEl ? parseFloat(valueEl.value) : NaN;
-    const target = targetEl ? parseFloat(targetEl.value) : NaN;
-    const previous = prevEl ? parseFloat(prevEl.value) : NaN;
-    if (name) {
-      kpis.push({
-        name,
-        value: isNaN(value) ? 0 : value,
-        target: isNaN(target) ? 0 : target,
-        previousValue: isNaN(previous) ? (isNaN(value) ? 0 : value) : previous
-      });
-    }
-  });
-
   setBtnLoading('saveDashText', 'saveDashSpinner', true);
   try {
-    const aiContext = document.getElementById('newDashAiContext')?.value.trim() || '';
-    const payload = { title, embed_url: url, department: dept, category: cat, tags, kpis, commentary, ai_context: aiContext };
-    await api('POST', '/api/dashboards/', payload);
+    const payload = { title, embed_url: url, department: dept, category: cat, tags, kpis: [], commentary, ai_context: aiContext };
+    if (editId) {
+      await api('PUT', `/api/dashboards/${editId}`, payload);
+      toast('✅ Dashboard updated!', 'success');
+    } else {
+      await api('POST', '/api/dashboards/', payload);
+      toast('✅ Dashboard created successfully!', 'success');
+    }
     // Reset form
-    document.getElementById('newDashTitle').value = '';
-    document.getElementById('newDashUrl').value = '';
-    document.getElementById('newDashTags').value = '';
-    document.getElementById('newDashCommentary').value = '';
-    document.getElementById('kpiRows').innerHTML = '';
+    ['newDashTitle','newDashUrl','newDashTags','newDashCommentary','newDashAiContext'].forEach(id => {
+      const el = document.getElementById(id); if(el) el.value = '';
+    });
+    const eid = document.getElementById('editDashId'); if(eid) eid.value = '';
     closeModal('addDashModal');
     await loadDashboards();
     await loadPortfolioStats();
-    toast('✅ Dashboard created successfully!', 'success');
   } catch (e) {
-    toast('Failed to create dashboard: ' + e.message, 'error');
+    toast('Failed to save dashboard: ' + e.message, 'error');
   } finally {
-    setBtnLoading('saveDashText', 'saveDashSpinner', false, 'Create Dashboard');
+    setBtnLoading('saveDashText', 'saveDashSpinner', false, 'Save Dashboard');
   }
 }
 
@@ -2010,27 +2099,198 @@ function setBtnLoading(textId, spinnerId, loading, resetText = '') {
 
 
 // ── AI Chat ──────────────────────────────────────────────────
+// Uploaded dataset storage
+STATE.uploadedData = null;
+STATE.uploadedFileName = null;
+
 function initChatPage() {
   const dashSel = document.getElementById('chatDashSelect');
   if(dashSel) {
-    dashSel.innerHTML = '<option value="">All Dashboards</option>' +
-      STATE.dashboards.map(d => `<option value="${d.id}">${d.title}</option>`).join('');
+    dashSel.innerHTML = '<option value="">🗂️ All Dashboards</option>' +
+      STATE.dashboards.map(d => `<option value="${d.id}">${d.title} (${d.department})</option>`).join('');
   }
   const sourceEl = document.getElementById('chatDataSources');
   if (sourceEl) {
+    let html = '';
+    if (STATE.uploadedData) {
+      html += `<div style="padding:6px 8px;background:rgba(22,163,74,.1);border-radius:6px;border-left:3px solid var(--green);margin-bottom:8px;font-size:11px;">
+        <div style="font-weight:700;color:var(--green);">📁 ${STATE.uploadedFileName}</div>
+        <div style="color:var(--text3);">${STATE.uploadedData.length} rows uploaded</div>
+      </div>`;
+    }
     if (STATE.dashboards.length) {
-      sourceEl.innerHTML = STATE.dashboards.map(d => {
+      html += STATE.dashboards.map(d => {
         const pct = (d.kpi_summary||{}).score||0;
         const c = pct>=80?'#22C55E':pct>=60?'#F59E0B':'#EF4444';
-        return `<div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;font-size:12px;">
-          <span style="width:8px;height:8px;border-radius:50%;background:${c};flex-shrink:0;"></span>
+        return `<div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;font-size:11px;">
+          <span style="width:7px;height:7px;border-radius:50%;background:${c};flex-shrink:0;"></span>
           <span style="color:var(--text2);">${d.title}</span>
         </div>`;
       }).join('');
-    } else {
-      sourceEl.innerHTML = '<p style="font-size:12px;color:var(--text3);">No dashboards available</p>';
     }
+    sourceEl.innerHTML = html || '<p style="font-size:12px;color:var(--text3);">No sources connected</p>';
   }
+
+  const previewEl = document.getElementById('dataPreviewPanel');
+  if (previewEl && STATE.uploadedData && STATE.uploadedData.length) {
+    renderDataPreview(STATE.uploadedData, previewEl);
+  }
+}
+
+// ── File Upload Handler ───────────────────────────────────────
+async function handleDataFileUpload(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const ext = file.name.split('.').pop().toLowerCase();
+  toast('📁 File reading kiya ja raha hai...', 'info');
+  try {
+    if (ext === 'csv' || ext === 'txt') {
+      const text = await file.text();
+      STATE.uploadedData = parseCSV(text);
+    } else if (ext === 'json') {
+      const text = await file.text();
+      const parsed = JSON.parse(text);
+      STATE.uploadedData = Array.isArray(parsed) ? parsed : [parsed];
+    } else if (ext === 'xlsx' || ext === 'xls') {
+      // Basic xlsx reading using FileReader
+      STATE.uploadedData = await parseXLSX(file);
+    } else {
+      toast('Supported formats: CSV, Excel, JSON', 'warning'); return;
+    }
+    STATE.uploadedFileName = file.name;
+    
+    // Show indicator
+    const info = document.getElementById('uploadedFileInfo');
+    const nameEl = document.getElementById('uploadedFileName');
+    const rowsEl = document.getElementById('uploadedFileRows');
+    if (info) { info.style.display = 'flex'; }
+    if (nameEl) nameEl.textContent = file.name;
+    if (rowsEl) rowsEl.textContent = `(${STATE.uploadedData.length} rows, ${Object.keys(STATE.uploadedData[0]||{}).length} columns)`;
+    
+    // Show preview
+    const previewEl = document.getElementById('dataPreviewPanel');
+    if (previewEl) renderDataPreview(STATE.uploadedData, previewEl);
+    
+    // Reinit sources
+    initChatPage();
+    
+    // Auto-message
+    appendChatMsg(`✅ <strong>${file.name}</strong> successfully upload hua! ${STATE.uploadedData.length} rows, ${Object.keys(STATE.uploadedData[0]||{}).length} columns mila.<br><br>Ab mujhse kuch bhi puchho — charts, tables, analysis sab kar sakta hoon.`, 'assistant');
+    toast(`✅ ${file.name} upload ho gaya`, 'success');
+  } catch (e) {
+    toast('File read error: ' + e.message, 'error');
+  }
+}
+
+function parseCSV(text) {
+  const lines = text.trim().split(/\r?\n/);
+  if (!lines.length) return [];
+  const headers = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g, ''));
+  return lines.slice(1).filter(l => l.trim()).map(line => {
+    const vals = line.match(/(".*?"|[^,]+|(?<=,)(?=,)|(?<=,)$|^(?=,))/g) || line.split(',');
+    const obj = {};
+    headers.forEach((h, i) => { obj[h] = (vals[i]||''). trim().replace(/^"|"$/g, ''); });
+    return obj;
+  });
+}
+
+async function parseXLSX(file) {
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        // Simple binary read — extract text cells
+        const data = new Uint8Array(e.target.result);
+        const text = new TextDecoder().decode(data);
+        // Fallback: treat as CSV-like if possible
+        const lines = text.split(/[\r\n]+/).filter(l => l.trim() && /[a-zA-Z0-9]/.test(l));
+        if (lines.length < 2) { resolve([{info: 'Excel file uploaded - use AI to analyze'}]); return; }
+        const rows = lines.slice(0, 50).map(l => ({row: l.slice(0, 100)}));
+        resolve(rows);
+      } catch(e) {
+        resolve([{info: 'Excel file uploaded'}]);
+      }
+    };
+    reader.readAsArrayBuffer(file);
+  });
+}
+
+function clearUploadedData() {
+  STATE.uploadedData = null;
+  STATE.uploadedFileName = null;
+  const info = document.getElementById('uploadedFileInfo');
+  if (info) info.style.display = 'none';
+  const fileInput = document.getElementById('dataFileInput');
+  if (fileInput) fileInput.value = '';
+  const previewEl = document.getElementById('dataPreviewPanel');
+  if (previewEl) previewEl.innerHTML = '<p style="font-size:12px;color:var(--text3);">No file uploaded</p>';
+  initChatPage();
+  toast('Data cleared', 'info');
+}
+
+function renderDataPreview(data, container) {
+  if (!data || !data.length) { container.innerHTML = '<p style="color:var(--text3);font-size:12px;">No data</p>'; return; }
+  const keys = Object.keys(data[0]);
+  const rows = data.slice(0, 5);
+  container.innerHTML = `<div style="font-size:11px;font-weight:700;color:var(--text3);margin-bottom:6px;">${data.length} rows × ${keys.length} cols</div>
+  <div style="overflow-x:auto;">
+    <table style="border-collapse:collapse;font-size:11px;width:100%;">
+      <thead><tr>${keys.map(k => `<th style="padding:4px 6px;border-bottom:1px solid var(--border);color:var(--text2);text-align:left;white-space:nowrap;">${k}</th>`).join('')}</tr></thead>
+      <tbody>${rows.map(r => `<tr>${keys.map(k => `<td style="padding:3px 6px;border-bottom:1px solid var(--border);color:var(--text3);white-space:nowrap;max-width:80px;overflow:hidden;text-overflow:ellipsis;">${r[k]||''}</td>`).join('')}</tr>`).join('')}</tbody>
+    </table>
+  </div>`;
+}
+
+// Render inline chart from AI response
+function renderInlineChart(type, labels, values, title) {
+  const id = 'chart_' + Date.now();
+  const colors = ['#E8192C','#2563EB','#059669','#7C3AED','#D97706','#EC4899','#0891B2','#65A30D'];
+  
+  const maxVal = Math.max(...values) || 1;
+  
+  if (type === 'bar') {
+    const bars = labels.map((l, i) => {
+      const pct = Math.round((values[i] / maxVal) * 100);
+      return `<div style="margin-bottom:10px;">
+        <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:3px;">
+          <span style="color:var(--text2);font-weight:600;">${l}</span>
+          <span style="color:var(--text);font-weight:700;">${formatNum(values[i])}</span>
+        </div>
+        <div style="height:22px;background:var(--surface2);border-radius:4px;overflow:hidden;">
+          <div style="width:${pct}%;height:100%;background:${colors[i%colors.length]};border-radius:4px;transition:width .6s ease;"></div>
+        </div>
+      </div>`;
+    }).join('');
+    return `<div id="${id}" style="background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:16px;margin-top:10px;">
+      <div style="font-weight:700;font-size:13px;margin-bottom:12px;color:var(--text);">📊 ${title}</div>
+      ${bars}
+    </div>`;
+  }
+  
+  if (type === 'pie') {
+    const total = values.reduce((a,b) => a+b, 0) || 1;
+    const legend = labels.map((l,i) => `<div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;font-size:11px;">
+      <span style="width:10px;height:10px;border-radius:2px;background:${colors[i%colors.length]};flex-shrink:0;"></span>
+      <span style="color:var(--text2);">${l}</span>
+      <span style="margin-left:auto;font-weight:700;color:var(--text);">${((values[i]/total)*100).toFixed(1)}%</span>
+    </div>`).join('');
+    return `<div id="${id}" style="background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:16px;margin-top:10px;">
+      <div style="font-weight:700;font-size:13px;margin-bottom:12px;color:var(--text);">🥧 ${title}</div>
+      ${legend}
+    </div>`;
+  }
+  
+  return '';
+}
+
+function renderInlineTable(headers, rows, title) {
+  return `<div style="background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:16px;margin-top:10px;overflow-x:auto;">
+    <div style="font-weight:700;font-size:13px;margin-bottom:10px;color:var(--text);">📋 ${title}</div>
+    <table style="border-collapse:collapse;font-size:12px;width:100%;">
+      <thead><tr>${headers.map(h => `<th style="padding:6px 10px;border-bottom:2px solid var(--border);color:var(--text2);text-align:left;white-space:nowrap;">${h}</th>`).join('')}</tr></thead>
+      <tbody>${rows.map((r,ri) => `<tr style="background:${ri%2?'var(--surface)':'transparent'}">${r.map(c => `<td style="padding:6px 10px;border-bottom:1px solid var(--border);color:var(--text);">${c}</td>`).join('')}</tr>`).join('')}</tbody>
+    </table>
+  </div>`;
 }
 
 async function sendChat() {
@@ -2041,12 +2301,13 @@ async function sendChat() {
   
   const dashSel = document.getElementById('chatDashSelect');
   const dashId = dashSel ? dashSel.value : '';
+  const semanticUrl = document.getElementById('semanticModelInput')?.value.trim() || '';
   input.value = '';
   
   appendChatMsg(question, 'user');
   
   const typingId = 'typing_' + Date.now();
-  appendChatMsg('<span style="display:inline-block;animation:spin .6s linear infinite;border:2px solid rgba(232,25,44,.2);border-top-color:var(--red);border-radius:50%;width:14px;height:14px;"></span> Analyzing your data...', 'assistant', typingId);
+  appendChatMsg(`<span style="display:inline-flex;align-items:center;gap:8px;"><span style="display:inline-block;animation:spin .6s linear infinite;border:2px solid rgba(232,25,44,.2);border-top-color:var(--red);border-radius:50%;width:14px;height:14px;"></span> <span style="color:var(--text3);font-size:12px;">Data analyse ho raha hai...</span></span>`, 'assistant', typingId);
   
   const chatBtn = document.getElementById('chatBtnText');
   const chatSpin = document.getElementById('chatSpinner');
@@ -2054,8 +2315,20 @@ async function sendChat() {
   if(chatSpin) chatSpin.style.display = '';
   
   try {
+    // Build payload - include uploaded data if available
     const payload = { question, history: (STATE.chatHistory||[]).slice(-10) };
     if (dashId) payload.dashboard_id = parseInt(dashId);
+    if (semanticUrl) payload.semantic_model_url = semanticUrl;
+    
+    // Include uploaded dataset (first 200 rows to stay within limits)
+    if (STATE.uploadedData && STATE.uploadedData.length) {
+      payload.uploaded_data = {
+        filename: STATE.uploadedFileName,
+        rows: STATE.uploadedData.slice(0, 200),
+        total_rows: STATE.uploadedData.length,
+        columns: Object.keys(STATE.uploadedData[0] || {})
+      };
+    }
     
     const data = await api('POST', '/api/analytics/ai-chat', payload);
     
@@ -2063,13 +2336,44 @@ async function sendChat() {
     if (typing) typing.remove();
     
     const answer = data.answer || 'No response generated.';
-    appendChatMsg(formatChatResponse(answer), 'assistant');
+    const formattedAnswer = formatChatResponse(answer);
+    
+    // Check if AI returned chart/table JSON
+    let extraHtml = '';
+    try {
+      const jsonMatch = answer.match(/```json\n?({[\s\S]*?})\n?```/);
+      if (jsonMatch) {
+        const parsed = JSON.parse(jsonMatch[1]);
+        if (parsed.chart_type && parsed.labels && parsed.values) {
+          extraHtml = renderInlineChart(parsed.chart_type, parsed.labels, parsed.values, parsed.title || question);
+        } else if (parsed.table_headers && parsed.table_rows) {
+          extraHtml = renderInlineTable(parsed.table_headers, parsed.table_rows, parsed.title || 'Data Table');
+        }
+      }
+    } catch(e) {}
+    
+    const msgDiv = document.createElement('div');
+    msgDiv.className = 'chat-msg assistant';
+    msgDiv.innerHTML = formattedAnswer.replace(/```json[\s\S]*?```/g, '') + extraHtml;
+    document.getElementById('chatMessages').appendChild(msgDiv);
+    document.getElementById('chatMessages').scrollTop = 999999;
     
     STATE.chatHistory = STATE.chatHistory || [];
     STATE.chatHistory.push({ role: 'user', content: question });
     STATE.chatHistory.push({ role: 'assistant', content: answer });
     
     updateQuickInsights(question, answer);
+    
+    // Show sources used
+    if (data.sources && data.sources.length) {
+      const sourceEl = document.getElementById('chatDataSources');
+      if (sourceEl) {
+        const src = document.createElement('div');
+        src.style.cssText = 'margin-bottom:4px;font-size:11px;padding:4px 8px;background:rgba(232,25,44,.08);border-radius:6px;color:var(--red);';
+        src.textContent = '✓ ' + data.sources.join(', ');
+        sourceEl.prepend(src);
+      }
+    }
     
   } catch (e) {
     const typing = document.getElementById(typingId);
@@ -2343,9 +2647,9 @@ function openEditDash(d) {
     document.getElementById('newDashDept').innerHTML = `<option value="${d.department}">${d.department}</option>`;
   }
   
-  document.getElementById('kpiRows').innerHTML = '';
-  (d.kpis||[]).forEach(k => addKPIRow(k));
-  if (!(d.kpis||[]).length) addKPIRow();
+  // Set dashModalTitle
+  const mh = document.getElementById('dashModalTitle');
+  if(mh) mh.textContent = 'Edit Dashboard';
   openModal('addDashModal');
 }
 
